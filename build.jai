@@ -8,6 +8,7 @@
 
 #run {
     make_directory_if_it_does_not_exist("./build/");
+    copy_directory("./resources/", "./build/resources");
 
     set_build_options_dc(.{
                            output_path = "build",
@@ -16,3 +17,4 @@
 
 #import "Compiler";
 #import "File";
+#import "File_Utilities";

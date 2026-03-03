@@ -12,7 +12,7 @@ main :: () {
     allocators: Allocators;
     allocators.persistent = *persistent;
 
-    parse_md_into_ast(allocators.persistent, "./resources/test.md");
+    run_markdown_lexer(allocators.persistent, "./resources/test.md");
 }
 
 #import "Basic";

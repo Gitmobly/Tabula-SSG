@@ -1,56 +1,59 @@
-Parser :: struct {
+MAX_TOKENS :: 1024;
+
+Lexer :: struct {
     data: string;
     cursor: u32;
+    token_result: [MAX_TOKENS]Token;
+    num_tokens: u32;
 }
 
 /* -------------------------------------
-* (JJB): Node Types
+* (JJB): Tokens
 */
 
-Node_Type :: enum {
+Token_Type :: enum {
     NONE;
-    HEADING;
-    TEXT;
-    PARAGRAPH;
+    H1;
+    H2;
+    H3;
+    H4;
+    H5;
+    H6;
 }
 
-Node :: struct {
-    parent: *Node;
-    node_type: Node_Type;
-}
-
-Atx_Heading :: struct {
-    using #as node: Node;
-    node_type = .HEADING;
-    size: u8;
-    heading_text: string;
+Token :: struct {
+    type: Token_Type;
+    start: *u8;
+    length: u32;
 }
 
 /* -------------------------------------
 * (JJB): API
 */
 
-parse_md_into_ast :: (a: *Allocator, file_path: string) -> bool {
+run_markdown_lexer :: (a: *Allocator, file_path: string) -> bool {
     data, ok := read_entire_file(file_path);
     if (!ok) return false;
+    print("\n\nThe data: \n\n%\n\n", data);
 
-    parser := New(Parser,, a);
-    parser.data = data;
-    parser.cursor = 0;
+    lexer := New(Lexer,, a);
+    lexer.data = data;
+    lexer.cursor = 0;
+    lexer.num_tokens = 0;
 
-    while parser.cursor < parser.data.count {
-        current_token := peek(parser);
-        is_reserved_token, node_type := is_reserved_token(current_token);
+    while lexer.cursor < lexer.data.count {
+        assert(lexer.num_tokens < MAX_TOKENS);
+        current_token := peek(lexer);
 
-        if (is_reserved_token) {
-            ok, _ = parse_node(parser, node_type);
-            if (!ok) {
-                print("Failed to parse a node beginning with reserved token %.\n", ascii_from_u8(current_token));
-            }
+        if (is_heading(current_token)) {
+            header_token: Token;
+            consume_heading(lexer, *header_token);
         }
 
-        consume(parser);
+        consume(lexer);
     }
+
+    print("%", lexer.token_result);
 
     return true;
 }
@@ -59,87 +62,79 @@ parse_md_into_ast :: (a: *Allocator, file_path: string) -> bool {
 * (JJB): Markdown Parsing Functions
 */
 
-parse_node :: (p: *Parser, node_type: Node_Type) -> bool, *Node {
-    if node_type == {
-    case .NONE; {
-            print("What?\n");
-            return false, null;
-        }
-    case .HEADING; {
-            heading := parse_heading(p);
-            print("\n");
-            return true, heading;
-        }
-
-    case; {
-            print("Attempting to parse an unexpected token.\n");
-            return false, null;
-        }
-    }
+is_heading :: (token: u8) -> bool {
+    if (token == "#") return true;
+    else return false;
 }
 
-parse_heading :: (p: *Parser) -> *Atx_Heading {
-    heading := New(Atx_Heading);
-
-    while (consume(p) != #char " ") {
-        heading.size += 1;
+consume_heading :: (lexer: *Lexer, header_token: *Token) {
+    header_count := 0;
+    while (peek(lexer) == "#") {
+        header_count += 1;
+        consume(lexer);
     }
 
-    while (!is_eol(p)) {
-        print("%", ascii_from_u8(p.data[p.cursor]));
-        consume(p);
+    if (peek(lexer) == " ") consume(lexer);
+    header_token.start = *lexer.data[lexer.cursor];
+
+    if header_count == {
+    case 1; header_token.type = .H1;
+    case 2; header_token.type = .H2;
+    case 3; header_token.type = .H3;
+    case 4; header_token.type = .H4;
+    case 5; header_token.type = .H5;
+    case 6; header_token.type = .H6;
     }
 
-    return heading;
-}
-
-is_reserved_token :: (token: u8) -> bool, Node_Type {
-    if token == {
-    case #char "#"; return true, .HEADING;
-    case; return false, .NONE;
+    while (!is_eol(lexer)) {
+        header_token.length += 1;
+        consume(lexer);
     }
+
+    lexer.token_result[lexer.num_tokens] = header_token;
+    lexer.num_tokens += 1;
 }
 
 /* -------------------------------------
 * (JJB): Generic parsing functions
 */
 
-peek :: (p: *Parser) -> u8 {
-    if (p.cursor >= p.data.count) {
+peek :: (l: *Lexer) -> u8 {
+    if (l.cursor >= l.data.count) {
         return 0;
     }
 
-    return p.data[p.cursor];
+    return l.data[l.cursor];
 }
 
-peek :: (p: *Parser, ahead: u32) -> u8 {
-    if (p.cursor + ahead >= p.data.count) {
+peek :: (l: *Lexer, ahead: u32) -> u8 {
+    if (l.cursor + ahead >= l.data.count) {
         return 0;
     }
 
-    return p.data[p.cursor + ahead];
+    return l.data[l.cursor + ahead];
 }
 
-consume :: (p: *Parser) -> u8 {
-    if (p.cursor >= p.data.count) {
+consume :: (l: *Lexer) -> u8 {
+    if (l.cursor >= l.data.count) {
         return 0;
     }
 
-    character: u8 = p.data[p.cursor];
-    p.cursor += 1;
+    character: u8 = l.data[l.cursor];
+    l.cursor += 1;
     return character;
 }
 
-skip_ws :: (p: *Parser) {
-    while (p.cursor < p.data.count) {
-        c: u8 = p.data[p.cursor];
+skip_ws :: (l: *Lexer) {
+    while (l.cursor < l.data.count) {
+        c: u8 = l.data[l.cursor];
         if c == {
         case #char " "; #through;
         case #char "\n"; #through;
         case #char "\r"; #through;
         case #char "\t"; #through;
         case #char "\0"; {
-                p.cursor += 1;
+                l.cursor += 1;
             }
         case; break;
         }
@@ -147,12 +142,11 @@ skip_ws :: (p: *Parser) {
 }
 
 // eol == end of line
-is_eol :: (p: *Parser) -> bool {
-    c: u8 = p.data[p.cursor];
+is_eol :: (l: *Lexer) -> bool {
+    c: u8 = l.data[l.cursor];
     if c == {
     case #char "\n"; #through;
     case #char "\r"; #through;
-    case #char "\t"; #through;
     case #char "\0"; {
             return true;
         }

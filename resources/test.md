@@ -1,8 +1,17 @@
 # Test MD
-This is a *test* markdown file. Made for **testing** a markdown parser. More stuff should be added to this.
+This is a *test* markdown file. Made for **testing** a markdown parser. More stuff should be added to this. 
 
-### The more stuff that should be added
+### Now for some more MD features I'd use
 
-lots more stuff...
+> This is a quote
+> A multi-line quote, in fact!
 
-## This is a size 2 heading
+onto code:
+
+```
+if(is_code_block()) return true;
+```
+
+of course, we'd expect this to return `true`.
+
+

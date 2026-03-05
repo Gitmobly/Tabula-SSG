@@ -28,6 +28,13 @@ Token_Type :: enum {
     BOLDITALIC;
 
     TEXT;
+
+    NEWLINE;
+
+    QUOTE;
+
+    INLINECODE;
+    CODEBLOCK;
 }
 
 Token :: struct {
@@ -77,13 +84,20 @@ run_markdown_lexer :: (a: *Allocator, file_path: string) -> bool, *Lexer {
                 emphasis_token: Token;
                 consume_emphasis(lexer, *emphasis_token);
             }
+        case "`"; {
+                code_token: Token;
+                consume_code(lexer, *code_token);
+            }
+        case "\n"; #through;
+        case "\r"; {
+                newline_token: Token;
+                consume_newline(lexer, *newline_token);
+            }
         case; {
                 text_token: Token;
                 consume_text(lexer, *text_token);
             }
         }
-
-        consume(lexer);
     }
 
     return true, lexer;
@@ -102,7 +116,6 @@ consume_heading :: (lexer: *Lexer, header_token: *Token) {
 
     if (peek(lexer) == " ") consume(lexer);
     header_token.start = *lexer.data[lexer.cursor];
-    print("header start: %\n", ascii_from_u8(lexer.data[lexer.cursor]));
 
     if header_count == {
     case 1; header_token.type = .H1;
@@ -113,11 +126,12 @@ consume_heading :: (lexer: *Lexer, header_token: *Token) {
     case 6; header_token.type = .H6;
     }
 
-    while (!is_eol(lexer)) {
+    while (!is_eol(peek(lexer))) {
         header_token.length += 1;
         consume(lexer);
     }
 
+    consume(lexer);
     lexer.token_result[lexer.num_tokens] = header_token;
     lexer.num_tokens += 1;
 }
@@ -138,13 +152,12 @@ consume_emphasis :: (lexer: *Lexer, emphasis_token: *Token) {
     }
 
     emphasis_token.start = *lexer.data[lexer.cursor];
-    print("emph start: %\n", ascii_from_u8(lexer.data[lexer.cursor]));
 
-    /* TODO(JJB): Off by one error... somewher... mystical...*/
     while (consume(lexer) != "*") {
         emphasis_token.length += 1;
     }
 
+    consume(lexer);
     lexer.token_result[lexer.num_tokens] = emphasis_token;
     lexer.num_tokens += 1;
 }
@@ -152,27 +165,68 @@ consume_emphasis :: (lexer: *Lexer, emphasis_token: *Token) {
 consume_text :: (lexer: *Lexer, text_token: *Token) {
     text_token.type = .TEXT;
     text_token.start = *lexer.data[lexer.cursor];
-    print("text start: %\n", ascii_from_u8(lexer.data[lexer.cursor]));
 
-    /* TODO(JJB): CLEANUP */
-    while (!is_special_character(peek(lexer)) && !is_eol(lexer)) {
+    while (!is_special_character(peek(lexer)) && !is_eol(peek(lexer))) {
         text_token.length += 1;
-        if (!is_special_character(peek(lexer, 1)) && !is_eol(lexer)) {
+        if (!is_special_character(peek(lexer, 1)) && !is_eol(peek(lexer, 1))) {
             consume(lexer);
         } else {
             break;
         }
     }
 
+    consume(lexer);
     if (text_token.length > 0) {
         lexer.token_result[lexer.num_tokens] = text_token;
         lexer.num_tokens += 1;
     }
 }
 
+consume_newline :: (lexer: *Lexer, newline_token: *Token) {
+    newline_token.type = .NEWLINE;
+    newline_token.start = *lexer.data[lexer.cursor];
+
+    while (is_eol(peek(lexer))) {
+        newline_token.length += 1;
+        consume(lexer);
+        if (lexer.cursor >= lexer.data.count) break;
+    }
+
+    lexer.token_result[lexer.num_tokens] = newline_token;
+    lexer.num_tokens += 1;
+}
+
+consume_code :: (lexer: *Lexer, code_token: *Token) {
+    if (peek(lexer, 1) == "`") {
+        code_token.type = .CODEBLOCK;
+    } else {
+        code_token.type = .INLINECODE;
+    }
+
+    while (peek(lexer) == "`") {
+        consume(lexer);
+    }
+
+    code_token.start = *lexer.data[lexer.cursor];
+
+    while (peek(lexer) != "`") {
+        code_token.length += 1;
+        consume(lexer);
+    }
+
+    while (peek(lexer) == "`") {
+        consume(lexer);
+    }
+
+    consume(lexer);
+    lexer.token_result[lexer.num_tokens] = code_token;
+    lexer.num_tokens += 1;
+}
+
 is_special_character :: (char: u8) -> bool {
     if char == {
     case "#"; #through;
+    case "`"; #through;
     case "*"; return true;
     }
 
@@ -183,15 +237,7 @@ is_special_character :: (char: u8) -> bool {
 * (JJB): Generic parsing functions
 */
 
-peek :: (l: *Lexer) -> u8 {
-    if (l.cursor >= l.data.count) {
-        return 0;
-    }
-
-    return l.data[l.cursor];
-}
-
-peek :: (l: *Lexer, ahead: u32) -> u8 {
+peek :: (l: *Lexer, ahead: u32 = 0) -> u8 {
     if (l.cursor + ahead >= l.data.count) {
         return 0;
     }
@@ -225,17 +271,8 @@ skip_ws :: (l: *Lexer) {
     }
 }
 
-// eol == end of line
-is_eol :: (l: *Lexer) -> bool {
-    c: u8 = l.data[l.cursor];
-    if c == {
-    case #char "\n"; #through;
-    case #char "\r"; #through;
-    case #char "\0"; {
-            return true;
-        }
-    case; return false;
-    }
+is_eol :: (c: u8) -> bool {
+    return c == #char "\n" || c == #char "\r" || c == #char "\0";
 }
 
 /* -------------------------------------

@@ -6,21 +6,51 @@ A static site generator written in Jai.
 
 Tabula operates on a subset of the [commonmark markdown specification](https://spec.commonmark.org/0.31.2/). I have not implemented the full specification, rather the features which I tend to use in my blog posts. Until I have reason to implement more, or receive OSS contributions, these are:
 
----
-###### ATX Headings, size 1-6.
-Simple inline *italic*, **bold**, and ***bolditalic***.
-Regular text.
+- ATX Headings.
+- Singular inline emphasis (bold, italic, bolditalic).
+- Regular text & newlines.
+- Single-line quotes.
+- Inline code.
+- Code blocks.
 
-Newlines.
+### Usage
 
-> Quotes.
+First, download `tabula.exe` or build from source by cloning the repository and running `jai build.jai`. 
 
-Inline `code`.
+In the same directory as `tabula.exe`, create a folder called `resources`. In this folder, you can put any `.md` files you want to turn into blog posts.
+
+If you then run `tabula.exe`, a `web` folder will be created. This should host all of the necessary files for you to host your static site. You can test this out by entering the `web` folder and running this python command: `python3 -m http.server`.
+
+Visiting `localhost:port` from your website will then present the website.
+
+Important note: all `.md` files you wish to parse must begin with a custom [front matter](https://jekyllrb.com/docs/front-matter/). 
+
+The front matter must contain 3 pieces of metadata. These are title, subtitle, and date (YYYY-MM-DD). Title is the only required field.
+
+I've left an example in the provided `test.md` file, but for completeness:
 
 ```
-Code blocks.
+---
+title: My blog post
+subtitle: A blog post about blog posts
+date: 2025-06-03
+---
 ```
 
----
+Or you could do:
 
-### TODO: Write more about usage, building, etc
+```
+---
+title: My blog post
+date: 2025-06-03
+---
+```
+
+and so on.
+
+
+### Contributions
+
+To contribute to this project, you'll need to have access to the [Jai](https://en.wikipedia.org/wiki/Jai_(programming_language)) compiler.
+
+The process is simple; if you find a bug, raise an issue on GitHub or git.deplet.ing. If you submit a PR, I'll try to check it out promptly.

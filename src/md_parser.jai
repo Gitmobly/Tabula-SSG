@@ -1,52 +1,41 @@
-MAX_TOKENS :: 512;
+MAX_TOKENS :: 2048;
 PRINT_PARSER_OUTPUT :: false;
 
-/* -------------------------------------
-* (JJB): Tokens
-*/
-
-Token_Type :: enum {
-    UNKNOWN;
-
-    HASH;
-    H1;
-    H2;
-    H3;
-    H4;
-    H5;
-    H6;
-
-    ASTERISK;
-    BOLD;
-    ITALIC;
-    BOLDITALIC;
-
-    TEXT;
-
-    NEWLINE;
-
-    QUOTE;
-
-    INLINECODE;
-    CODEBLOCK;
-}
-
-Token :: struct {
-    type: Token_Type;
-    start: *u8;
-    length: u32;
-}
+DEFAULT_HTML_FOOTER :: "Created by <a target=\"_blank\" rel=\"noopener noreferrer\" href='https://git.deplet.ing/Jj/Tabula-SSG'>Tabula-SSG</a>.";
 
 /* -------------------------------------
 * (JJB): API
 */
 
-run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_result: *Lexer) -> bool {
-    test_string := token_as_string(*lexer_result.token_result[0]);
-    thing := sprint("%%%", "<h1>", test_string, "</h1>");
+run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_result: *Lexer, start_time: Apollo_Time) -> bool {
+    print("Beginning parser pass for `%`.\n", markdown_data.file_path);
+    output_html_string_builder: String_Builder;
+    page_name_arr := split(markdown_data.file_path, "/");
+    page_name_val := split(page_name_arr[page_name_arr.count - 1], ".")[0];
 
+    // Header
+    insert_html_header(*output_html_string_builder, page_name_val);
+
+    // Tokens
+    for 0..lexer_result.num_tokens - 1 {
+        token := lexer_result.token_result[it];
+        if token.type == .UNKNOWN {
+            print("Warning: Unknown token. Skipping. Be sure to verify the output!\n");
+            continue;
+        }
+        tags := TOKEN_HTML[cast(int)token.type];
+        print_to_builder(*output_html_string_builder, "%%%", tags.open, token_as_string(*token), tags.close);
+    }
+
+    // Footer
+    end_time := current_time_monotonic();
+    total_time := to_microseconds(end_time - start_time);
+    insert_html_footer(*output_html_string_builder, total_time, true);
+
+    // Logistics?
     make_directory_if_it_does_not_exist("./web/");
-    success := write_entire_file("./web/index.html", thing);
+    file_to_write := sprint("./web/%.html", page_name_val);
+    success := write_entire_file(file_to_write, *output_html_string_builder);
     if (!success) {
         print("Could not write to file.\n");
         return false;
@@ -63,22 +52,25 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
 }
 
 run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *Lexer {
+    print("Beginning lexer pass for `%`.\n", markdown_data.file_path);
     lexer := New(Lexer,, a);
     lexer.data = markdown_data.data;
     lexer.cursor = 0;
     lexer.num_tokens = 0;
-    lexer.token_result = New(Token,, a);
+    lexer.token_result = NewArray(MAX_TOKENS, Token,, a);
 
     while lexer.cursor < lexer.data.count {
         assert(lexer.num_tokens < MAX_TOKENS);
         current_token := peek(lexer);
+        // / print("%\n", ascii_from_u8(current_token));
 
         if current_token == {
         case "#"; {
                 header_token: Token;
                 consume_heading(lexer, *header_token);
             }
-        case "*"; {
+        case "*"; #through;
+        case "_"; {
                 emphasis_token: Token;
                 consume_emphasis(lexer, *emphasis_token);
             }
@@ -138,21 +130,21 @@ consume_heading :: (lexer: *Lexer, header_token: *Token) {
 
 consume_emphasis :: (lexer: *Lexer, emphasis_token: *Token) {
     /* TODO(JJB): This isn't exactly robust, but I need to figure out whether I care about that... */
-    if (peek(lexer, 2) == "*") {
+    if (peek(lexer, 2) == "*" || peek(lexer, 2) == "_") {
         emphasis_token.type = .BOLDITALIC;
-    } else if (peek(lexer, 1) == "*") {
+    } else if (peek(lexer, 1) == "*" || peek(lexer, 1) == "_") {
         emphasis_token.type = .BOLD;
     } else {
         emphasis_token.type = .ITALIC;
     }
 
-    while (peek(lexer) == "*") {
+    while (peek(lexer) == "*" || peek(lexer) == "_") {
         consume(lexer);
     }
 
     emphasis_token.start = *lexer.data[lexer.cursor];
 
-    while (peek(lexer) != "*") {
+    while (peek(lexer) != "*" && peek(lexer) != "_") {
         emphasis_token.length += 1;
         consume(lexer);
     }
@@ -204,15 +196,14 @@ consume_code :: (lexer: *Lexer, code_token: *Token) {
         code_token.type = .INLINECODE;
     }
 
-    while (peek(lexer) == "`") {
+    while (peek(lexer) == "`" || is_eol(peek(lexer))) {
         consume(lexer);
     }
 
     code_token.start = *lexer.data[lexer.cursor];
 
-    while (peek(lexer) != "`") {
+    while (consume(lexer) != "`") {
         code_token.length += 1;
-        consume(lexer);
     }
 
     while (peek(lexer) == "`") {
@@ -270,7 +261,6 @@ consume :: (l: *Lexer, ahead: u32 = 1) {
         return;
     }
 
-    character: u8 = l.data[l.cursor];
     l.cursor += ahead;
     return;
 }
@@ -283,22 +273,6 @@ consume :: (l: *Lexer) -> u8 {
     character: u8 = l.data[l.cursor];
     l.cursor += 1;
     return character;
-}
-
-skip_ws :: (l: *Lexer) {
-    while (l.cursor < l.data.count) {
-        c: u8 = l.data[l.cursor];
-        if c == {
-        case #char " "; #through;
-        case #char "\n"; #through;
-        case #char "\r"; #through;
-        case #char "\t"; #through;
-        case #char "\0"; {
-                l.cursor += 1;
-            }
-        case; break;
-        }
-    }
 }
 
 is_eol :: (c: u8) -> bool {

@@ -1,11 +1,5 @@
 MAX_TOKENS :: 512;
-
-Lexer :: struct {
-    data: string;
-    cursor: u32;
-    num_tokens: u32;
-    token_result: *Token;
-}
+PRINT_PARSER_OUTPUT :: false;
 
 /* -------------------------------------
 * (JJB): Tokens
@@ -47,26 +41,30 @@ Token :: struct {
 * (JJB): API
 */
 
-run_markdown_parser :: (a: *Allocator, lexer_result: *Lexer) -> bool {
-    print("Parser layout: \n");
-    for 0..lexer_result.num_tokens - 1 {
-        print("%\n", lexer_result.token_result[it]);
+run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_result: *Lexer) -> bool {
+    test_string := token_as_string(*lexer_result.token_result[0]);
+    thing := sprint("%%%", "<h1>", test_string, "</h1>");
+
+    make_directory_if_it_does_not_exist("./web/");
+    success := write_entire_file("./web/index.html", thing);
+    if (!success) {
+        print("Could not write to file.\n");
+        return false;
     }
 
+    if (PRINT_PARSER_OUTPUT) {
+        for 0..lexer_result.num_tokens - 1 {
+            print("%\n", lexer_result.token_result[it]);
+        }
+    }
+
+    print("Completed parser pass for `%`.\n", markdown_data.file_path);
     return true;
 }
 
-run_markdown_lexer :: (a: *Allocator, file_path: string) -> bool, *Lexer {
-    data, ok := read_entire_file(file_path);
-    if (!ok) {
-        print("Could not read file: %\n", file_path);
-        return false, null;
-    }
-
-    print("Data: %\n", data);
-
+run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *Lexer {
     lexer := New(Lexer,, a);
-    lexer.data = data;
+    lexer.data = markdown_data.data;
     lexer.cursor = 0;
     lexer.num_tokens = 0;
     lexer.token_result = New(Token,, a);
@@ -88,6 +86,10 @@ run_markdown_lexer :: (a: *Allocator, file_path: string) -> bool, *Lexer {
                 code_token: Token;
                 consume_code(lexer, *code_token);
             }
+        case ">"; {
+                quote_token: Token;
+                consume_quote(lexer, *quote_token);
+            }
         case "\n"; #through;
         case "\r"; {
                 newline_token: Token;
@@ -100,6 +102,7 @@ run_markdown_lexer :: (a: *Allocator, file_path: string) -> bool, *Lexer {
         }
     }
 
+    print("Completed lexer pass for `%`.\n", markdown_data.file_path);
     return true, lexer;
 }
 
@@ -109,13 +112,9 @@ run_markdown_lexer :: (a: *Allocator, file_path: string) -> bool, *Lexer {
 
 consume_heading :: (lexer: *Lexer, header_token: *Token) {
     header_count := 0;
-    while (peek(lexer) == "#") {
+    while (consume(lexer) == "#") {
         header_count += 1;
-        consume(lexer);
     }
-
-    if (peek(lexer) == " ") consume(lexer);
-    header_token.start = *lexer.data[lexer.cursor];
 
     if header_count == {
     case 1; header_token.type = .H1;
@@ -126,25 +125,25 @@ consume_heading :: (lexer: *Lexer, header_token: *Token) {
     case 6; header_token.type = .H6;
     }
 
-    while (!is_eol(peek(lexer))) {
+    if (peek(lexer) == " ") consume(lexer);
+    header_token.start = *lexer.data[lexer.cursor];
+
+    while (!is_eol(consume(lexer))) {
         header_token.length += 1;
-        consume(lexer);
     }
 
-    consume(lexer);
     lexer.token_result[lexer.num_tokens] = header_token;
     lexer.num_tokens += 1;
 }
 
 consume_emphasis :: (lexer: *Lexer, emphasis_token: *Token) {
+    /* TODO(JJB): This isn't exactly robust, but I need to figure out whether I care about that... */
     if (peek(lexer, 2) == "*") {
         emphasis_token.type = .BOLDITALIC;
     } else if (peek(lexer, 1) == "*") {
         emphasis_token.type = .BOLD;
-    } else if (peek(lexer, 1) != "*") {
-        emphasis_token.type = .ITALIC;
     } else {
-        emphasis_token.type = .UNKNOWN;
+        emphasis_token.type = .ITALIC;
     }
 
     while (peek(lexer) == "*") {
@@ -153,11 +152,18 @@ consume_emphasis :: (lexer: *Lexer, emphasis_token: *Token) {
 
     emphasis_token.start = *lexer.data[lexer.cursor];
 
-    while (consume(lexer) != "*") {
+    while (peek(lexer) != "*") {
         emphasis_token.length += 1;
+        consume(lexer);
     }
 
-    consume(lexer);
+    /* TODO(JJB): A bit ugly... */
+    if emphasis_token.type == {
+    case .BOLDITALIC; consume(lexer, 3);
+    case .BOLD; consume(lexer, 2);
+    case .ITALIC; consume(lexer);
+    }
+
     lexer.token_result[lexer.num_tokens] = emphasis_token;
     lexer.num_tokens += 1;
 }
@@ -166,16 +172,11 @@ consume_text :: (lexer: *Lexer, text_token: *Token) {
     text_token.type = .TEXT;
     text_token.start = *lexer.data[lexer.cursor];
 
-    while (!is_special_character(peek(lexer)) && !is_eol(peek(lexer))) {
+    while (!is_special_character(peek(lexer))) {
         text_token.length += 1;
-        if (!is_special_character(peek(lexer, 1)) && !is_eol(peek(lexer, 1))) {
-            consume(lexer);
-        } else {
-            break;
-        }
+        consume(lexer);
     }
 
-    consume(lexer);
     if (text_token.length > 0) {
         lexer.token_result[lexer.num_tokens] = text_token;
         lexer.num_tokens += 1;
@@ -223,10 +224,29 @@ consume_code :: (lexer: *Lexer, code_token: *Token) {
     lexer.num_tokens += 1;
 }
 
+consume_quote :: (lexer: *Lexer, quote_token: *Token) {
+    quote_token.type = .QUOTE;
+
+    consume(lexer, 2); // first '> '
+
+    quote_token.start = *lexer.data[lexer.cursor];
+
+    while (!is_eol(peek(lexer))) {
+        quote_token.length += 1;
+        consume(lexer);
+    }
+
+    lexer.token_result[lexer.num_tokens] = quote_token;
+    lexer.num_tokens += 1;
+}
+
 is_special_character :: (char: u8) -> bool {
     if char == {
     case "#"; #through;
     case "`"; #through;
+    case "\n"; #through;
+    case "\r"; #through;
+    case "\0"; #through;
     case "*"; return true;
     }
 
@@ -243,6 +263,16 @@ peek :: (l: *Lexer, ahead: u32 = 0) -> u8 {
     }
 
     return l.data[l.cursor + ahead];
+}
+
+consume :: (l: *Lexer, ahead: u32 = 1) {
+    if (l.cursor + ahead >= l.data.count) {
+        return;
+    }
+
+    character: u8 = l.data[l.cursor];
+    l.cursor += ahead;
+    return;
 }
 
 consume :: (l: *Lexer) -> u8 {
@@ -281,6 +311,10 @@ is_eol :: (c: u8) -> bool {
 
 ascii_from_u8 :: (num: u8) -> string #expand {
     return .{1, *num};
+}
+
+token_as_string :: (t: *Token) -> string {
+    return .{t.length, t.start};
 }
 
 #import "File";

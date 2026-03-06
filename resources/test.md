@@ -1,5 +1,5 @@
 # Test MD
-This is a *test* markdown file. Made for **testing** a markdown parser. More stuff should be added to this. 
+This is a *test* markdown file. Made for **testing** a markdown ***parser***. More stuff should be added to this. 
 
 ### Now for some more MD features I'd use
 

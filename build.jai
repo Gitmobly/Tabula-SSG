@@ -5,7 +5,7 @@
 #load "src/entry_point.jai";
 #run {
     make_directory_if_it_does_not_exist("./build/");
-    copy_directory("./resources/", "./build/resources");
+    copy_directory("./posts/", "./build/posts"); // TODO: Fix
     set_build_options_dc(.{
                            output_path = "build",
                            output_executable_name = "tabula"});

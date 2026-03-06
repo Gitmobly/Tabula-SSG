@@ -30,7 +30,7 @@ insert_html_footer :: (output_html: *String_Builder, total_time: s64 = 0, has_me
     print_to_builder(output_html, "%\n%\n%", "</main>", "</body>", "</html>");
 }
 
-create_blog_page :: (files: []string) -> bool {
+create_blog_page :: (posts: []Markdown_Metadata) -> bool {
     output_html: String_Builder;
 
     insert_html_header(*output_html, "Unresearch.ing");
@@ -39,10 +39,10 @@ create_blog_page :: (files: []string) -> bool {
     print_to_builder(*output_html, "%\n", "<nav>");
 
     /* TODO(JJB): Change to consuming metadata from a thing? like title, subtitle, date, any other relevant info...*/
-    for 0..files.count - 1 {
-        page_name_arr := split(files[it], "/");
+    for 0..posts.count - 1 {
+        page_name_arr := split(posts[it].file_path, "/");
         page_name := split(page_name_arr[page_name_arr.count - 1], ".")[0];
-        print_to_builder(*output_html, "<a href=%%>%</a><br>\n", page_name, ".html", page_name); // holy fragile
+        print_to_builder(*output_html, "% :: <a href=%%>%</a> :: %<br>\n", posts[it].date_str, page_name, ".html", posts[it].title, posts[it].subtitle); // holy fragile
     }
     print_to_builder(*output_html, "%\n", "</nav>");
 

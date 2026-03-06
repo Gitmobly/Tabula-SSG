@@ -1,3 +1,9 @@
+---
+title: My test blog
+subtitle: A test blog about testing
+date: 2026-03-06
+---
+
 # Test MD
 This is a *test* markdown file. Made for **testing** a markdown ***parser***. More stuff should be added to this. 
 

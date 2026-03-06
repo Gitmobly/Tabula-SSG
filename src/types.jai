@@ -1,7 +1,7 @@
 Lexer :: struct {
     data: string;
-    cursor: u32;
-    num_tokens: u32;
+    cursor: s64;
+    num_tokens: s64;
     token_result: []Token;
 }
 
@@ -10,8 +10,19 @@ Allocators :: struct {
 }
 
 Markdown_Data :: struct {
+    should_process: bool = true;
     data: string;
     file_path: string;
+    title: string;
+    subtitle: string;
+    date_str: string;
+}
+
+Markdown_Metadata :: struct {
+    file_path: string;
+    title: string;
+    subtitle: string;
+    date_str: string;
 }
 
 /* -------------------------------------

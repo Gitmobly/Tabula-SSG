@@ -8,6 +8,10 @@ DEFAULT_HTML_FOOTER :: "Created by <a target=\"_blank\" rel=\"noopener noreferre
 */
 
 run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_result: *Lexer, start_time: Apollo_Time) -> bool {
+    if (!markdown_data.should_process) {
+        return false;
+    }
+
     print("Beginning parser pass for `%`.\n", markdown_data.file_path);
     output_html_string_builder: String_Builder;
     page_name_arr := split(markdown_data.file_path, "/");
@@ -15,6 +19,7 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
 
     // Header
     insert_html_header(*output_html_string_builder, page_name_val);
+    print_to_builder(*output_html_string_builder, "%<br>%<br>%<br><br>", markdown_data.date_str, markdown_data.title, markdown_data.subtitle);
 
     // Tokens
     for 0..lexer_result.num_tokens - 1 {
@@ -59,10 +64,22 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *L
     lexer.num_tokens = 0;
     lexer.token_result = NewArray(MAX_TOKENS, Token,, a);
 
+    // Check for front matter
+    if (peek(lexer) != "-") {
+        print("Missing frontmatter from %. This file will not be processed.\n", markdown_data.file_path);
+        markdown_data.should_process = false;
+        return true, lexer;
+    }
+
+    // Parse frontmatter
+    if !consume_frontmatter(lexer, markdown_data) {
+        markdown_data.should_process = false;
+        return true, lexer;
+    }
+
     while lexer.cursor < lexer.data.count {
         assert(lexer.num_tokens < MAX_TOKENS);
         current_token := peek(lexer);
-        // / print("%\n", ascii_from_u8(current_token));
 
         if current_token == {
         case "#"; {
@@ -244,6 +261,61 @@ is_special_character :: (char: u8) -> bool {
     return false;
 }
 
+consume_frontmatter :: (lexer: *Lexer, markdown_data: *Markdown_Data) -> bool {
+    if !test_range(lexer, "---") {
+        print("No frontmatter in %. File will not be processed.\n", markdown_data.file_path);
+        return false;
+    }
+    consume(lexer, 3);
+    skip_ws(lexer);
+
+    while lexer.cursor < lexer.data.count {
+        if test_range(lexer, "---") {
+            consume(lexer, 3);
+            skip_ws(lexer);
+            break;
+        }
+
+        key := read_until(lexer, #char ":");
+        consume(lexer); // ':'
+        if peek(lexer) == #char " " consume(lexer);
+
+        value := read_until_eol(lexer);
+        skip_ws(lexer);
+
+        if key == "title" markdown_data.title = value;
+        else if key == "subtitle" markdown_data.subtitle = value;
+        else if key == "date" markdown_data.date_str = value;
+    }
+
+    if markdown_data.title.count == 0 {
+        print("Missing required 'title' in frontmatter: %. File will not be processed.\n", markdown_data.file_path);
+        return false;
+    }
+
+    return true;
+}
+
+read_until :: (l: *Lexer, sentinel: u8) -> string {
+    start := *l.data[l.cursor];
+    length: s64 = 0;
+    while l.cursor < l.data.count && peek(l) != sentinel && !is_eol(peek(l)) {
+        length += 1;
+        consume(l);
+    }
+    return .{length, start};
+}
+
+read_until_eol :: (l: *Lexer) -> string {
+    start := *l.data[l.cursor];
+    length: s64 = 0;
+    while l.cursor < l.data.count && !is_eol(peek(l)) {
+        length += 1;
+        consume(l);
+    }
+    return .{length, start};
+}
+
 /* -------------------------------------
 * (JJB): Generic parsing functions
 */
@@ -256,7 +328,7 @@ peek :: (l: *Lexer, ahead: u32 = 0) -> u8 {
     return l.data[l.cursor + ahead];
 }
 
-consume :: (l: *Lexer, ahead: u32 = 1) {
+consume :: (l: *Lexer, ahead: s64) {
     if (l.cursor + ahead >= l.data.count) {
         return;
     }
@@ -277,6 +349,22 @@ consume :: (l: *Lexer) -> u8 {
 
 is_eol :: (c: u8) -> bool {
     return c == #char "\n" || c == #char "\r" || c == #char "\0";
+}
+
+skip_ws :: (l: *Lexer) {
+    while l.cursor < l.data.count {
+        c := peek(l);
+        if c != #char " " && c != #char "\t" && !is_eol(c) break;
+        consume(l);
+    }
+}
+
+test_range :: (l: *Lexer, expected: string) -> bool {
+    if l.cursor + expected.count > l.data.count return false;
+    for 0..expected.count - 1 {
+        if l.data[l.cursor + it] != expected[it] return false;
+    }
+    return true;
 }
 
 /* -------------------------------------

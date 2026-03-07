@@ -421,6 +421,11 @@ consume_frontmatter :: (lexer: *Lexer, markdown_data: *Markdown_Data) -> bool {
         return false;
     }
 
+    if markdown_data.date_str.count == 0 {
+        print("Missing required 'date' in frontmatter: %. File will not be processed.\n", markdown_data.file_path);
+        return false;
+    }
+
     return true;
 }
 

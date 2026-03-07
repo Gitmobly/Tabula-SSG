@@ -94,15 +94,38 @@ main :: () {
     }
 
     print("Successfully processed % posts.\n", processed_items.count);
+    quick_sort(processed_items, (a, b) => date_to_ordinal(b.date_str) - date_to_ordinal(a.date_str));
 
     if !create_css_stylesheet(config) print("Could not create CSS stylesheet...\n");
     if !create_blog_page(processed_items, config) print("Could not create home page...\n");
     if !create_about_page(config, allocators.persistent) print("Could not create about page...\n");
 }
 
+date_to_ordinal :: (date_str: string) -> s64 {
+    if date_str.count < 10 return 0;
+
+    parse_digits :: (s: string, offset: int, count: int) -> s64 {
+        result: s64 = 0;
+        for 0..count - 1 {
+            c := s[offset + it];
+            if c < #char "0" || c > #char "9" return -1;
+            result = result * 10 + (c - #char "0");
+        }
+        return result;
+    }
+
+    year := parse_digits(date_str, 0, 4);
+    month := parse_digits(date_str, 5, 2);
+    day := parse_digits(date_str, 8, 2);
+
+    if year < 0 || month < 0 || day < 0 return 0;
+    return year * 10000 + month * 100 + day;
+}
+
 #import "Basic";
 #import "Flat_Pool";
 #import "File_Utilities";
+#import "Sort";
 #load "md_parser.jai";
 #load "types.jai";
 #load "css.jai";

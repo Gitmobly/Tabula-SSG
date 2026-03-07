@@ -1,53 +1,35 @@
 ---
-title: My test blog
-subtitle: A test blog about testing
+title: Another test blog
 date: 2026-03-06
 ---
 
-# Test MD
-This is a *test* markdown file. Made for **testing** a markdown ***parser***. More stuff should be added to this. 
+# Tabula-SSG
 
-### Now for some more MD features I'd use
+A static site generator written in Jai.
+### Features
 
-> This is a quote
-> A multi-line quote, in fact!
+Tabula operates on a subset of the [commonmark markdown specification](https://spec.commonmark.org/0.31.2/). I have not implemented the full specification, rather the features which I tend to use in my blog posts. Until I have reason to implement more, or receive OSS contributions, these are:
 
-onto code:
+---
+###### ATX Headings, size 1-6.
+
+Simple inline *italic*, **bold**, and ***bolditalic***.
+
+Regular text.
+
+Newlines.
+
+> Quotes.
+
+Inline `code`.
+
+>Multi Line
+>Quotes
 
 ```
-if(is_code_block()) return true;
+Code blocks.
 ```
 
-of course, we'd expect this to return `true`.
+[Links](https://git.deplet.ing/Jj/Tabula-SSG)
 
-
-# Another big title
-
-```
-A bunch of code
-dkalfjaf
-asfjdajf
-sdakf
-jf
-djak;fjdasl
-jfakldf
- ajfa
- j fjdal;f
- jda
-  af
-```
-
-> Another quote
-
-Some final words
-
-[I also forgot to add links](https://deplet.ing);
-
-Here's a computer:
-
-![](./images/alto-running-smalltalk.jpg)
-*Xerox alto running smalltalk*
-
-*Other italicised text*
-
-normal *inline* italicised text;
+### TODO: Write more about usage, building, etc

@@ -30,7 +30,7 @@ Visiting `localhost:port` from your website will then present the website.
 
 Important note: all `.md` files you wish to parse must begin with a custom [front matter](https://jekyllrb.com/docs/front-matter/). 
 
-The front matter must contain 3 pieces of metadata. These are title, subtitle, and date (YYYY-MM-DD). Title is the only required field.
+The front matter must contain 3 pieces of metadata. These are title, subtitle, and date (YYYY-MM-DD). Title and date are required fields.
 
 I've left an example in the provided `test.md` file, but for completeness:
 
@@ -50,8 +50,6 @@ title: My blog post
 date: 2025-06-03
 ---
 ```
-
-and so on.
 
 There are a number of command line arguments you can supply:
 

@@ -31,7 +31,7 @@ Markdown_Metadata :: struct {
 
 Build_Config :: struct {
     no_about: bool = false;
-    site_title: string = "Tabula-SSG";
+    site_title: string = "Blog";
     about_src: string = "";
     stylesheet_path: string = "styles.css";
     stylesheet_src: string = "";

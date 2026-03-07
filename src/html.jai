@@ -19,7 +19,7 @@ insert_html_header :: (output_html: *String_Builder, page_name: string, config: 
         <main>
         END,
 
-                     page_name,
+                     config.site_title,
                      config.stylesheet_path,
                      config.site_title,
                      ifx !config.no_about then "<a href=\"/about.html\">About</a>" else "");

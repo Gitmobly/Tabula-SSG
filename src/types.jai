@@ -30,6 +30,9 @@ Markdown_Metadata :: struct {
 }
 
 Build_Config :: struct {
+    no_about: bool = false;
+    site_title: string = "Tabula-SSG";
+    about_src: string = "";
     stylesheet_path: string = "styles.css";
     stylesheet_src: string = "";
 }

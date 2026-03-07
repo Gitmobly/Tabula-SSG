@@ -1,4 +1,3 @@
-// 
 // Build script.
 // Set the icon by running with: +Icon -icon icon.ico
 // 

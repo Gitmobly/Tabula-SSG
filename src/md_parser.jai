@@ -7,7 +7,7 @@ DEFAULT_HTML_FOOTER :: "Created by <a target=\"_blank\" rel=\"noopener noreferre
 * (JJB): API
 */
 
-run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_result: *Lexer, start_time: Apollo_Time, stylesheet_path: string) -> bool {
+run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_result: *Lexer, start_time: Apollo_Time, config: Build_Config) -> bool {
     if (!markdown_data.should_process) {
         return false;
     }
@@ -18,97 +18,11 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
     page_name_val := split(page_name_arr[page_name_arr.count - 1], ".")[0];
 
     // Header
-    insert_html_header(*output_html_string_builder, page_name_val, stylesheet_path);
+    insert_html_header(*output_html_string_builder, page_name_val, config);
     print_to_builder(*output_html_string_builder, "%<br>%<br>%<br><br>", markdown_data.date_str, markdown_data.title, markdown_data.subtitle);
 
     // Tokens
-
-    in_paragraph := false;
-
-    for 0..lexer_result.num_tokens - 1 {
-        token := lexer_result.token_result[it];
-
-        if token.type == .UNKNOWN continue;
-
-        if token.type == .NEWLINE {
-            if token.length >= 2 {
-                if in_paragraph {
-                    print_to_builder(*output_html_string_builder, "</p>\n");
-                    in_paragraph = false;
-                }
-            }
-            continue;
-        }
-
-        if token.type == .HYPERLINK {
-            if !in_paragraph {
-                print_to_builder(*output_html_string_builder, "<p>");
-                in_paragraph = true;
-            }
-            display := string.{token.length, token.start};
-            url := string.{token.aux_length, token.aux_start};
-            print_to_builder(*output_html_string_builder, "<a href=\"%\">%</a>", url, display);
-            continue;
-        }
-
-        if token.type == .IMAGE {
-            if in_paragraph {
-                print_to_builder(*output_html_string_builder, "</p>\n");
-                in_paragraph = false;
-            }
-            alt := string.{token.length, token.start};
-            url := string.{token.aux_length, token.aux_start};
-            print_to_builder(*output_html_string_builder, "<img src=\"%\" alt=\"%\">\n", url, alt);
-            continue;
-        }
-
-        if token.type == .QUOTE {
-            if in_paragraph {
-                print_to_builder(*output_html_string_builder, "</p>\n");
-                in_paragraph = false;
-            }
-            print_to_builder(*output_html_string_builder, "<blockquote>");
-            print_to_builder(*output_html_string_builder, "%", token_as_string(*token));
-
-            while it + 1 < lexer_result.num_tokens {
-                next := lexer_result.token_result[it + 1];
-                if next.type == .NEWLINE {
-                    if it + 2 < lexer_result.num_tokens && lexer_result.token_result[it + 2].type == .QUOTE {
-                        it += 2;
-                        print_to_builder(*output_html_string_builder, "<br>%", token_as_string(*lexer_result.token_result[it]));
-                        continue;
-                    }
-                }
-                break;
-            }
-
-            print_to_builder(*output_html_string_builder, "</blockquote>\n");
-            continue;
-        }
-
-        is_block := token.type == .H1 || token.type == .H2 || token.type == .H3 ||
-                    token.type == .H4 || token.type == .H5 || token.type == .H6 ||
-                    token.type == .QUOTE || token.type == .CODEBLOCK;
-
-        if is_block {
-            if in_paragraph {
-                print_to_builder(*output_html_string_builder, "</p>\n");
-                in_paragraph = false;
-            }
-            tags := TOKEN_HTML[cast(int)token.type];
-            print_to_builder(*output_html_string_builder, "%%%\n", tags.open, token_as_string(*token), tags.close);
-            continue;
-        }
-
-        if !in_paragraph {
-            print_to_builder(*output_html_string_builder, "<p>");
-            in_paragraph = true;
-        }
-        tags := TOKEN_HTML[cast(int)token.type];
-        print_to_builder(*output_html_string_builder, "%%%", tags.open, token_as_string(*token), tags.close);
-    }
-
-    if in_paragraph print_to_builder(*output_html_string_builder, "</p>\n");
+    render_tokens_to_builder(*output_html_string_builder, lexer_result);
 
     // Footer
     end_time := current_time_monotonic();
@@ -118,6 +32,7 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
     // Logistics?
     make_directory_if_it_does_not_exist("./web/");
     make_directory_if_it_does_not_exist("./web/images");
+    make_directory_if_it_does_not_exist("./posts/images");
     copy_directory("./posts/images", "./web/images");
     file_to_write := sprint("./web/%.html", page_name_val);
     success := write_entire_file(file_to_write, *output_html_string_builder);
@@ -136,7 +51,57 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
     return true;
 }
 
-run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *Lexer {
+render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
+    in_paragraph := false;
+
+    for 0..lexer_result.num_tokens - 1 {
+        token := lexer_result.token_result[it];
+        if token.type == .UNKNOWN continue;
+
+        if token.type == .NEWLINE {
+            if token.length >= 2 && in_paragraph {
+                print_to_builder(output, "</p>\n");
+                in_paragraph = false;
+            }
+            continue;
+        }
+
+        if token.type == .HYPERLINK {
+            if !in_paragraph {print_to_builder(output, "<p>"); in_paragraph = true;}
+            print_to_builder(output, "<a href=\"%\">%</a>",
+                             string.{token.aux_length, token.aux_start},
+                             string.{token.length, token.start});
+            continue;
+        }
+
+        if token.type == .IMAGE {
+            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
+            print_to_builder(output, "<img src=\"%\" alt=\"%\">\n",
+                             string.{token.aux_length, token.aux_start},
+                             string.{token.length, token.start});
+            continue;
+        }
+
+        is_block := token.type == .H1 || token.type == .H2 || token.type == .H3 ||
+                    token.type == .H4 || token.type == .H5 || token.type == .H6 ||
+                    token.type == .QUOTE || token.type == .CODEBLOCK;
+
+        if is_block {
+            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
+            tags := TOKEN_HTML[cast(int)token.type];
+            print_to_builder(output, "%%%\n", tags.open, token_as_string(*token), tags.close);
+            continue;
+        }
+
+        if !in_paragraph {print_to_builder(output, "<p>"); in_paragraph = true;}
+        tags := TOKEN_HTML[cast(int)token.type];
+        print_to_builder(output, "%%%", tags.open, token_as_string(*token), tags.close);
+    }
+
+    if in_paragraph print_to_builder(output, "</p>\n");
+}
+
+run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Build_Config) -> bool, *Lexer {
     print("Beginning lexer pass for `%`.\n", markdown_data.file_path);
     lexer := New(Lexer,, a);
     lexer.data = markdown_data.data;
@@ -144,17 +109,18 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *L
     lexer.num_tokens = 0;
     lexer.token_result = NewArray(MAX_TOKENS, Token,, a);
 
-    // Check for front matter
-    if (peek(lexer) != #char "-") {
-        print("Missing frontmatter from %. This file will not be processed.\n", markdown_data.file_path);
-        markdown_data.should_process = false;
-        return true, lexer;
-    }
+    is_about := markdown_data.file_path == config.about_src;
 
-    // Parse frontmatter
-    if !consume_frontmatter(lexer, markdown_data) {
-        markdown_data.should_process = false;
-        return true, lexer;
+    if !is_about {
+        if peek(lexer) != #char "-" {
+            print("Missing frontmatter from %. This file will not be processed.\n", markdown_data.file_path);
+            markdown_data.should_process = false;
+            return true, lexer;
+        }
+        if !consume_frontmatter(lexer, markdown_data) {
+            markdown_data.should_process = false;
+            return true, lexer;
+        }
     }
 
     while lexer.cursor < lexer.data.count {

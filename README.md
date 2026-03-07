@@ -53,11 +53,16 @@ date: 2025-06-03
 
 and so on.
 
-There is some CSS styling provided, but unfortunately, graphic design is not my passion. You can supply your own stylesheet by running:
+There are a number of command line arguments you can supply:
 
-`tabula.exe --stylesheet custom.css`
+Usage: tabula [options]
 
-I've left one in the `custom_css` folder at root level - please try it out :)
+Options:
+  --title <text>        Site title displayed in the header
+  --stylesheet <path>   Path to a custom CSS file
+  --about <path>        Path to a markdown file to use as the about page. This page does not need frontmatter.
+  --no-about            Disable the about page entirely
+  --help                Show this message
 
 ### Contributions
 

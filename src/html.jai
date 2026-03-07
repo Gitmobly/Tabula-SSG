@@ -35,7 +35,6 @@ create_blog_page :: (posts: []Markdown_Metadata, stylesheet_path: string) -> boo
     output_html: String_Builder;
 
     insert_html_header(*output_html, "Unresearch.ing", stylesheet_path);
-    print_to_builder(*output_html, "%\n", "<h6>todo fix ugly ass names</h6>");
 
     print_to_builder(*output_html, "%\n", "<nav>");
 
@@ -62,7 +61,7 @@ create_about_page :: (stylesheet_path: string) -> bool {
     output_html: String_Builder;
 
     insert_html_header(*output_html, "About", stylesheet_path);
-    print_to_builder(*output_html, "%\n", "<h6>o shid waddup</h6>");
+    print_to_builder(*output_html, "%\n", "<p>Tabula-SSG is a static site generator written in the Jai programming language.</p><br><br><p><a href=\"https://git.deplet.ing/Jj/Tabula-SSG\">You can read more here.</a></p>");
     insert_html_footer(*output_html);
 
     success := write_entire_file("./web/about.html", *output_html);

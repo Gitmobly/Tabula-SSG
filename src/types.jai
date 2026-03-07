@@ -63,6 +63,8 @@ Token_Type :: enum {
     CODEBLOCK;
 
     HYPERLINK;
+
+    IMAGE;
 }
 
 Token :: struct {
@@ -96,4 +98,5 @@ TOKEN_HTML :: Html_Tags.[
                          .{"<blockquote>", "</blockquote>"}, // QUOTE
                          .{"<code>", "</code>"}, // INLINECODE
                          .{"<pre><code>", "</code></pre>"}, // CODEBLOCK
-                         .{"", ""}]; // HYPERLINK 
+                         .{"", ""}, // HYPERLINK 
+                         .{"", ""}]; // IMAGE 

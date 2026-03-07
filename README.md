@@ -14,12 +14,15 @@ Tabula operates on a subset of the [commonmark markdown specification](https://s
 - Inline code.
 - Code blocks.
 - Hyperlinks.
+- Images.
 
 ### Usage
 
 First, download `tabula.exe` or build from source by cloning the repository and running `jai build.jai`. 
 
-In the same directory as `tabula.exe`, create a folder called `resources`. In this folder, you can put any `.md` files you want to turn into blog posts.
+In the same directory as `tabula.exe`, create a folder called `posts`. In this folder, you can put any `.md` files you want to turn into blog posts.
+
+In the `posts` folder, you can also make an `images` subfolder, to store local images you reference in those posts.
 
 If you then run `tabula.exe`, a `web` folder will be created. This should host all of the necessary files for you to host your static site. You can test this out by entering the `web` folder and running this python command: `python3 -m http.server`.
 
@@ -54,8 +57,7 @@ There is some CSS styling provided, but unfortunately, graphic design is not my 
 
 `tabula.exe --stylesheet custom.css`
 
-I've left one in the `custom_css` folder at root level - enjoy :)
-
+I've left one in the `custom_css` folder at root level - please try it out :)
 
 ### Contributions
 

@@ -17,6 +17,7 @@ create_css_stylesheet :: (config: Build_Config) -> bool {
 }
 
 DEFAULT_CSS: string = #string END
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -75,9 +76,7 @@ h3 { font-size: 1.2rem; font-style: italic; font-weight: normal; }
 h4 { font-size: 1rem;   font-style: italic; color: #444; }
 h5 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: #444; }
 h6 { font-size: 0.8rem;  color: #888; }
-
 p { margin-bottom: 1.4em; }
-
 strong { font-weight: 700; }
 em     { font-style: italic; }
 
@@ -96,7 +95,6 @@ code {
     padding: 0.1em 0.4em;
     border-radius: 3px;
 }
-
 pre {
     background: #f4f4f4;
     border: 1px solid #ddd;
@@ -107,6 +105,22 @@ pre {
 }
 
 pre code { background: none; padding: 0; font-size: 0.85rem; }
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 2em auto;
+    border: 1px solid #ddd;
+}
+
+img + p {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #888;
+    font-style: italic;
+    margin-top: -1.2em;
+}
 
 footer {
     margin-top: 6rem;
@@ -124,4 +138,6 @@ footer {
     header            { padding: 1rem 1.5rem; }
     header nav        { gap: 1.2rem; }
 }
+
+header nav        { gap: 1.2rem; }
 END

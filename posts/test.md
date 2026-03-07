@@ -42,3 +42,12 @@ jfakldf
 Some final words
 
 [I also forgot to add links](https://deplet.ing);
+
+Here's a computer:
+
+![](./images/alto-running-smalltalk.jpg)
+*Xerox alto running smalltalk*
+
+*Other italicised text*
+
+normal *inline* italicised text;

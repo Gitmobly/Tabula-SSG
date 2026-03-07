@@ -51,6 +51,17 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
             continue;
         }
 
+        if token.type == .IMAGE {
+            if in_paragraph {
+                print_to_builder(*output_html_string_builder, "</p>\n");
+                in_paragraph = false;
+            }
+            alt := string.{token.length, token.start};
+            url := string.{token.aux_length, token.aux_start};
+            print_to_builder(*output_html_string_builder, "<img src=\"%\" alt=\"%\">\n", url, alt);
+            continue;
+        }
+
         if token.type == .QUOTE {
             if in_paragraph {
                 print_to_builder(*output_html_string_builder, "</p>\n");
@@ -106,6 +117,8 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
 
     // Logistics?
     make_directory_if_it_does_not_exist("./web/");
+    make_directory_if_it_does_not_exist("./web/images");
+    copy_directory("./posts/images", "./web/images");
     file_to_write := sprint("./web/%.html", page_name_val);
     success := write_entire_file(file_to_write, *output_html_string_builder);
     if (!success) {
@@ -174,6 +187,20 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *L
         case #char "["; {
                 hyperlink_token: Token;
                 consume_hyperlink(lexer, *hyperlink_token);
+            }
+        case #char "!"; {
+                if peek(lexer, 1) == #char "[" {
+                    image_token: Token;
+                    consume_image(lexer, *image_token);
+                } else {
+                    text_token: Token;
+                    text_token.type = .TEXT;
+                    text_token.start = *lexer.data[lexer.cursor];
+                    text_token.length = 1;
+                    consume(lexer);
+                    lexer.token_result[lexer.num_tokens] = text_token;
+                    lexer.num_tokens += 1;
+                }
             }
         case; {
                 text_token: Token;
@@ -346,6 +373,39 @@ consume_hyperlink :: (lexer: *Lexer, hyperlink_token: *Token) {
     consume(lexer); // ')'
 
     lexer.token_result[lexer.num_tokens] = hyperlink_token;
+    lexer.num_tokens += 1;
+}
+
+consume_image :: (lexer: *Lexer, image_token: *Token) {
+    image_token.type = .IMAGE;
+    consume(lexer); // '!'
+    consume(lexer); // '['
+
+    // alt text
+    image_token.start = *lexer.data[lexer.cursor];
+    while lexer.cursor < lexer.data.count && peek(lexer) != #char "]" && !is_eol(peek(lexer)) {
+        image_token.length += 1;
+        consume(lexer);
+    }
+    consume(lexer); // ']'
+
+    if peek(lexer) != #char "(" {
+        image_token.type = .UNKNOWN;
+        lexer.token_result[lexer.num_tokens] = image_token;
+        lexer.num_tokens += 1;
+        return;
+    }
+    consume(lexer); // '('
+
+    // url
+    image_token.aux_start = *lexer.data[lexer.cursor];
+    while lexer.cursor < lexer.data.count && peek(lexer) != #char ")" && !is_eol(peek(lexer)) {
+        image_token.aux_length += 1;
+        consume(lexer);
+    }
+    consume(lexer); // ')'
+
+    lexer.token_result[lexer.num_tokens] = image_token;
     lexer.num_tokens += 1;
 }
 

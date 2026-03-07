@@ -1,13 +1,19 @@
 /* TODO(JJB): How personalisable should this be? For now, not at all... until I come up with an idea*/
-create_css_stylesheet :: () -> bool {
-    success := write_entire_file("./web/styles.css", DEFAULT_CSS);
-    if (!success) {
-        print("Could not css write to file.\n");
-        return false;
+create_css_stylesheet :: (config: Build_Config) -> bool {
+    dest := tprint("./web/%", config.stylesheet_path);
+    if config.stylesheet_src.count > 0 {
+        data, ok := read_entire_file(config.stylesheet_src);
+        if !ok {
+            print("Could not read stylesheet: %\n", config.stylesheet_src);
+            return false;
+        }
+        defer free(data);
+        print("Using custom stylesheet: %\n", config.stylesheet_path);
+        return write_entire_file(dest, data);
     }
 
     print("Successfully generated styles.css.\n");
-    return true;
+    return write_entire_file(dest, DEFAULT_CSS);
 }
 
 DEFAULT_CSS: string = #string END

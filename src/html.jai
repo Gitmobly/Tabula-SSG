@@ -1,11 +1,11 @@
-insert_html_header :: (output_html: *String_Builder, page_name: string) {
+insert_html_header :: (output_html: *String_Builder, page_name: string, stylesheet_path: string) {
     print_to_builder(output_html, #string END
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
             <title>%</title>
-            <link rel="stylesheet" href="styles.css">
+            <link rel="stylesheet" href="%">
         </head>
         <body>
         <header>
@@ -18,7 +18,8 @@ insert_html_header :: (output_html: *String_Builder, page_name: string) {
         <main>
         END,
 
-                     page_name);
+                     page_name,
+                     stylesheet_path);
 }
 
 insert_html_footer :: (output_html: *String_Builder, total_time: s64 = 0, has_metrics: bool = false) {
@@ -30,15 +31,14 @@ insert_html_footer :: (output_html: *String_Builder, total_time: s64 = 0, has_me
     print_to_builder(output_html, "%\n%\n%", "</main>", "</body>", "</html>");
 }
 
-create_blog_page :: (posts: []Markdown_Metadata) -> bool {
+create_blog_page :: (posts: []Markdown_Metadata, stylesheet_path: string) -> bool {
     output_html: String_Builder;
 
-    insert_html_header(*output_html, "Unresearch.ing");
+    insert_html_header(*output_html, "Unresearch.ing", stylesheet_path);
     print_to_builder(*output_html, "%\n", "<h6>todo fix ugly ass names</h6>");
 
     print_to_builder(*output_html, "%\n", "<nav>");
 
-    /* TODO(JJB): Change to consuming metadata from a thing? like title, subtitle, date, any other relevant info...*/
     for 0..posts.count - 1 {
         page_name_arr := split(posts[it].file_path, "/");
         page_name := split(page_name_arr[page_name_arr.count - 1], ".")[0];
@@ -58,10 +58,10 @@ create_blog_page :: (posts: []Markdown_Metadata) -> bool {
     return true;
 }
 
-create_about_page :: () -> bool {
+create_about_page :: (stylesheet_path: string) -> bool {
     output_html: String_Builder;
 
-    insert_html_header(*output_html, "About");
+    insert_html_header(*output_html, "About", stylesheet_path);
     print_to_builder(*output_html, "%\n", "<h6>o shid waddup</h6>");
     insert_html_footer(*output_html);
 

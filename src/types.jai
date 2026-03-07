@@ -1,3 +1,7 @@
+/* -------------------------------------
+* (JJB): General
+*/
+
 Lexer :: struct {
     data: string;
     cursor: s64;
@@ -23,6 +27,11 @@ Markdown_Metadata :: struct {
     title: string;
     subtitle: string;
     date_str: string;
+}
+
+Build_Config :: struct {
+    stylesheet_path: string = "styles.css";
+    stylesheet_src: string = "";
 }
 
 /* -------------------------------------

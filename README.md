@@ -48,6 +48,12 @@ date: 2025-06-03
 
 and so on.
 
+There is some CSS styling provided, but unfortunately, graphic design is not my passion. You can supply your own stylesheet by running:
+
+`tabula.exe --stylesheet custom.css`
+
+I've left one in the `custom_css` folder at root level - enjoy :)
+
 
 ### Contributions
 

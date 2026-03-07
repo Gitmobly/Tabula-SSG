@@ -7,7 +7,7 @@ DEFAULT_HTML_FOOTER :: "Created by <a target=\"_blank\" rel=\"noopener noreferre
 * (JJB): API
 */
 
-run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_result: *Lexer, start_time: Apollo_Time) -> bool {
+run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_result: *Lexer, start_time: Apollo_Time, stylesheet_path: string) -> bool {
     if (!markdown_data.should_process) {
         return false;
     }
@@ -18,19 +18,51 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
     page_name_val := split(page_name_arr[page_name_arr.count - 1], ".")[0];
 
     // Header
-    insert_html_header(*output_html_string_builder, page_name_val);
+    insert_html_header(*output_html_string_builder, page_name_val, stylesheet_path);
     print_to_builder(*output_html_string_builder, "%<br>%<br>%<br><br>", markdown_data.date_str, markdown_data.title, markdown_data.subtitle);
 
     // Tokens
+
+    in_paragraph := false;
+
     for 0..lexer_result.num_tokens - 1 {
         token := lexer_result.token_result[it];
-        if token.type == .UNKNOWN {
-            print("Warning: Unknown token. Skipping. Be sure to verify the output!\n");
+
+        if token.type == .UNKNOWN continue;
+
+        if token.type == .NEWLINE {
+            if token.length >= 2 {
+                if in_paragraph {
+                    print_to_builder(*output_html_string_builder, "</p>\n");
+                    in_paragraph = false;
+                }
+            }
             continue;
+        }
+
+        is_block := token.type == .H1 || token.type == .H2 || token.type == .H3 ||
+                    token.type == .H4 || token.type == .H5 || token.type == .H6 ||
+                    token.type == .QUOTE || token.type == .CODEBLOCK;
+
+        if is_block {
+            if in_paragraph {
+                print_to_builder(*output_html_string_builder, "</p>\n");
+                in_paragraph = false;
+            }
+            tags := TOKEN_HTML[cast(int)token.type];
+            print_to_builder(*output_html_string_builder, "%%%\n", tags.open, token_as_string(*token), tags.close);
+            continue;
+        }
+
+        if !in_paragraph {
+            print_to_builder(*output_html_string_builder, "<p>");
+            in_paragraph = true;
         }
         tags := TOKEN_HTML[cast(int)token.type];
         print_to_builder(*output_html_string_builder, "%%%", tags.open, token_as_string(*token), tags.close);
     }
+
+    if in_paragraph print_to_builder(*output_html_string_builder, "</p>\n");
 
     // Footer
     end_time := current_time_monotonic();
@@ -65,7 +97,7 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *L
     lexer.token_result = NewArray(MAX_TOKENS, Token,, a);
 
     // Check for front matter
-    if (peek(lexer) != "-") {
+    if (peek(lexer) != #char "-") {
         print("Missing frontmatter from %. This file will not be processed.\n", markdown_data.file_path);
         markdown_data.should_process = false;
         return true, lexer;
@@ -82,25 +114,25 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *L
         current_token := peek(lexer);
 
         if current_token == {
-        case "#"; {
+        case #char "#"; {
                 header_token: Token;
                 consume_heading(lexer, *header_token);
             }
-        case "*"; #through;
-        case "_"; {
+        case #char "*"; #through;
+        case #char "_"; {
                 emphasis_token: Token;
                 consume_emphasis(lexer, *emphasis_token);
             }
-        case "`"; {
+        case #char "`"; {
                 code_token: Token;
                 consume_code(lexer, *code_token);
             }
-        case ">"; {
+        case #char ">"; {
                 quote_token: Token;
                 consume_quote(lexer, *quote_token);
             }
-        case "\n"; #through;
-        case "\r"; {
+        case #char "\n"; #through;
+        case #char "\r"; {
                 newline_token: Token;
                 consume_newline(lexer, *newline_token);
             }

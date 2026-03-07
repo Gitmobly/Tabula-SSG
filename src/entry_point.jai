@@ -8,6 +8,25 @@ main :: () {
     allocators: Allocators;
     allocators.persistent = *persistent;
 
+    // User can bring their own stylesheet
+    config: Build_Config;
+    args := get_command_line_arguments();
+    i := 1;
+    while i < args.count {
+        if args[i] == "--stylesheet" {
+            if i + 1 >= args.count {
+                print("--stylesheet requires a path argument.\n");
+                return;
+            }
+            config.stylesheet_src = args[i + 1];
+            config.stylesheet_path = path_filename(args[i + 1]);
+            i += 2;
+            continue;
+        }
+        print("Unknown argument: %\n", args[i]);
+        i += 1;
+    }
+
     make_directory_if_it_does_not_exist("./posts");
     files := file_list("./posts");
     print("Found % items in posts folder.\n", files.count);
@@ -34,7 +53,7 @@ main :: () {
         markdown_data := Markdown_Data.{data = markdown_raw_data, file_path = file_path};
         lexer_ok, lexer_result := run_markdown_lexer(allocators.persistent, *markdown_data);
         if (!lexer_ok) print("Failed to complete lexer stage for file: %\n", file_path);
-        if (run_markdown_parser(allocators.persistent, *markdown_data, lexer_result, start_time)) {
+        if (run_markdown_parser(allocators.persistent, *markdown_data, lexer_result, start_time, config.stylesheet_path)) {
             array_add(*processed_items, Markdown_Metadata.{
                                                            file_path = markdown_data.file_path,
                                                            title = markdown_data.title,
@@ -45,15 +64,15 @@ main :: () {
 
     print("Successfully processed % posts.\n", processed_items.count);
 
-    if (!create_css_stylesheet()) {
+    if (!create_css_stylesheet(config)) {
         print("Could not create CSS stylesheet...\n");
     }
 
-    if (!create_blog_page(processed_items)) {
+    if (!create_blog_page(processed_items, config.stylesheet_path)) {
         print("Could not create home page...\n");
     }
 
-    if (!create_about_page()) {
+    if (!create_about_page(config.stylesheet_path)) {
         print("Could not create about page...\n");
     }
 }

@@ -1,0 +1,219 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background-color: #000080;
+    background-image: url("https://www.toptal.com/designers/subtlepatterns/uploads/star-wars.png");
+    color: #ffff00;
+    font-family: Comic Sans MS, Papyrus, fantasy;
+    font-size: 14px;
+    line-height: 1.4;
+    cursor: url("https://cur.cursors-4u.net/cursors/cur-2/cur116.cur"), auto;
+}
+
+header {
+    background: #ff00ff;
+    border-top: 4px solid #00ffff;
+    border-bottom: 4px solid #00ffff;
+    padding: 1rem 2rem;
+    text-align: center;
+}
+
+header nav {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+header .site-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #00ff00;
+    text-shadow: 3px 3px #ff0000, -1px -1px #0000ff;
+    font-family: Impact, Comic Sans MS;
+    letter-spacing: 0.1em;
+    width: 100%;
+    animation: marquee-glow 0.5s infinite alternate;
+}
+
+@keyframes marquee-glow {
+    from { color: #00ff00; }
+    to   { color: #ff00ff; }
+}
+
+header a {
+    font-family: Comic Sans MS;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #ffffff;
+    text-decoration: none;
+    background: #ff0000;
+    border: 3px outset #ffff00;
+    padding: 4px 10px;
+}
+
+header a:hover {
+    background: #00ff00;
+    color: #000000;
+    border-style: inset;
+}
+
+main {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 8rem;
+    background: #000033;
+    border-left: 6px solid #ff00ff;
+    border-right: 6px solid #ff00ff;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-family: Impact, Comic Sans MS;
+    color: #ff0000;
+    text-align: center;
+    text-shadow: 2px 2px #ffff00, 4px 4px #ff00ff;
+    text-transform: uppercase;
+    border: 4px dashed #00ffff;
+    padding: 0.5em;
+    margin: 0.5em 0;
+    background: #000066;
+}
+
+h2 {
+    font-size: 1.8rem;
+    color: #00ffff;
+    font-family: Comic Sans MS;
+    text-decoration: underline overline;
+    text-align: center;
+    background: #330033;
+    border: 2px solid #ff00ff;
+    padding: 0.3em;
+}
+
+h3 {
+    font-size: 1.4rem;
+    color: #ff00ff;
+    font-family: Papyrus, Comic Sans MS;
+    letter-spacing: 0.15em;
+}
+
+h4 { font-size: 1.1rem; color: #ffff00; font-style: italic; }
+h5 { font-size: 1rem; color: #00ff00; text-transform: uppercase; }
+h6 { font-size: 0.9rem; color: #ff6600; }
+
+p {
+    margin-bottom: 1.2em;
+    color: #ffffff;
+    font-family: Comic Sans MS;
+}
+
+strong {
+    color: #ff0000;
+    font-size: 1.1em;
+    text-shadow: 1px 1px #ffff00;
+}
+
+em {
+    color: #00ffff;
+    font-style: normal;
+    font-weight: bold;
+    text-decoration: blink;
+}
+
+blockquote {
+    margin: 2em 0;
+    padding: 1em 1.5em;
+    border: 4px double #ffff00;
+    color: #00ff00;
+    font-style: italic;
+    background: #003300;
+    font-family: Papyrus;
+    font-size: 1.1em;
+    text-align: center;
+}
+
+blockquote::before { content: "~~~ "; color: #ff00ff; }
+blockquote::after  { content: " ~~~"; color: #ff00ff; }
+
+code {
+    font-family: 'Courier New', monospace;
+    font-size: 1em;
+    background: #003300;
+    color: #00ff00;
+    padding: 0.1em 0.4em;
+    border: 2px inset #ffff00;
+}
+
+pre {
+    background: #001100;
+    border: 4px ridge #00ff00;
+    padding: 1.4em;
+    overflow-x: auto;
+    margin: 2em 0;
+    font-family: 'Courier New', monospace;
+    color: #00ff00;
+}
+
+pre::before {
+    content: "[ SOURCE CODE - DO NOT STEAL (c) 2001 ]";
+    display: block;
+    font-size: 0.7rem;
+    color: #ff0000;
+    margin-bottom: 0.8em;
+    text-align: center;
+    font-family: Comic Sans MS;
+}
+
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #00ff00;
+}
+
+a {
+    color: #00ffff;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+a:visited { color: #ff00ff; }
+a:hover   { color: #ffff00; background: #ff0000; }
+
+footer {
+    margin-top: 4rem;
+    padding: 1.5rem;
+    border-top: 4px solid #ff00ff;
+    border-bottom: 4px solid #ff00ff;
+    font-size: 0.8rem;
+    color: #ffff00;
+    font-family: Comic Sans MS;
+    text-align: center;
+    background: #330000;
+}
+
+footer::before {
+    content: "★ BEST VIEWED IN INTERNET EXPLORER 6 AT 800x600 ★ ";
+    display: block;
+    color: #ff0000;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+}
+
+footer::after {
+    content: "visitors since 1999: 0000047";
+    display: block;
+    color: #00ff00;
+    margin-top: 0.5rem;
+    font-family: 'Courier New', monospace;
+}
+
+@media (max-width: 480px) {
+    body  { font-size: 12px; }
+    h1    { font-size: 1.8rem; }
+}

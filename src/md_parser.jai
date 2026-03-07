@@ -40,6 +40,17 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
             continue;
         }
 
+        if token.type == .HYPERLINK {
+            if !in_paragraph {
+                print_to_builder(*output_html_string_builder, "<p>");
+                in_paragraph = true;
+            }
+            display := string.{token.length, token.start};
+            url := string.{token.aux_length, token.aux_start};
+            print_to_builder(*output_html_string_builder, "<a href=\"%\">%</a>", url, display);
+            continue;
+        }
+
         is_block := token.type == .H1 || token.type == .H2 || token.type == .H3 ||
                     token.type == .H4 || token.type == .H5 || token.type == .H6 ||
                     token.type == .QUOTE || token.type == .CODEBLOCK;
@@ -135,6 +146,10 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data) -> bool, *L
         case #char "\r"; {
                 newline_token: Token;
                 consume_newline(lexer, *newline_token);
+            }
+        case #char "["; {
+                hyperlink_token: Token;
+                consume_hyperlink(lexer, *hyperlink_token);
             }
         case; {
                 text_token: Token;
@@ -267,7 +282,7 @@ consume_code :: (lexer: *Lexer, code_token: *Token) {
 consume_quote :: (lexer: *Lexer, quote_token: *Token) {
     quote_token.type = .QUOTE;
 
-    consume(lexer, 2); // first '> '
+    consume(lexer, 2); // '> '
 
     quote_token.start = *lexer.data[lexer.cursor];
 
@@ -280,6 +295,37 @@ consume_quote :: (lexer: *Lexer, quote_token: *Token) {
     lexer.num_tokens += 1;
 }
 
+consume_hyperlink :: (lexer: *Lexer, hyperlink_token: *Token) {
+    hyperlink_token.type = .HYPERLINK;
+
+    consume(lexer); // '['
+    hyperlink_token.start = *lexer.data[lexer.cursor];
+    while lexer.cursor < lexer.data.count && peek(lexer) != #char "]" && !is_eol(peek(lexer)) {
+        hyperlink_token.length += 1;
+        consume(lexer);
+    }
+    consume(lexer); // ']'
+
+    if peek(lexer) != #char "(" {
+        hyperlink_token.type = .TEXT;
+        lexer.token_result[lexer.num_tokens] = hyperlink_token;
+        lexer.num_tokens += 1;
+        return;
+    }
+    consume(lexer); // '('
+
+    // url
+    hyperlink_token.aux_start = *lexer.data[lexer.cursor];
+    while lexer.cursor < lexer.data.count && peek(lexer) != #char ")" && !is_eol(peek(lexer)) {
+        hyperlink_token.aux_length += 1;
+        consume(lexer);
+    }
+    consume(lexer); // ')'
+
+    lexer.token_result[lexer.num_tokens] = hyperlink_token;
+    lexer.num_tokens += 1;
+}
+
 is_special_character :: (char: u8) -> bool {
     if char == {
     case "#"; #through;
@@ -287,6 +333,7 @@ is_special_character :: (char: u8) -> bool {
     case "\n"; #through;
     case "\r"; #through;
     case "\0"; #through;
+    case "["; #through;
     case "*"; return true;
     }
 

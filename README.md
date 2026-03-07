@@ -12,6 +12,7 @@ Tabula operates on a subset of the [commonmark markdown specification](https://s
 - Single-line quotes.
 - Inline code.
 - Code blocks.
+- Hyperlinks.
 
 ### Usage
 

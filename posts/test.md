@@ -40,3 +40,5 @@ jfakldf
 > Another quote
 
 Some final words
+
+[I also forgot to add links](https://deplet.ing);

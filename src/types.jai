@@ -61,12 +61,16 @@ Token_Type :: enum {
 
     INLINECODE;
     CODEBLOCK;
+
+    HYPERLINK;
 }
 
 Token :: struct {
     type: Token_Type;
     start: *u8;
-    length: u32;
+    length: s64;
+    aux_start: *u8;
+    aux_length: s64;
 }
 
 /* -------------------------------------
@@ -91,4 +95,5 @@ TOKEN_HTML :: Html_Tags.[
                          .{"", ""}, // NEWLINE
                          .{"<blockquote>", "</blockquote>"}, // QUOTE
                          .{"<code>", "</code>"}, // INLINECODE
-                         .{"<pre><code>", "</code></pre>"}]; // CODEBLOCK
+                         .{"<pre><code>", "</code></pre>"}, // CODEBLOCK
+                         .{"", ""}]; // HYPERLINK 

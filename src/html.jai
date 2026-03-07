@@ -3,6 +3,7 @@ insert_html_header :: (output_html: *String_Builder, page_name: string, config: 
         <!DOCTYPE html>
         <html>
         <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
             <meta charset="UTF-8">
             <title>%</title>
             <link rel="stylesheet" href="%">

@@ -10,6 +10,7 @@ Tabula operates on a subset of the [commonmark markdown specification](https://s
 - Singular inline emphasis (bold, italic, bolditalic).
 - Regular text & newlines.
 - Single-line quotes.
+- Multi-line quotes.
 - Inline code.
 - Code blocks.
 - Hyperlinks.
@@ -61,3 +62,7 @@ I've left one in the `custom_css` folder at root level - enjoy :)
 To contribute to this project, you'll need to have access to the [Jai](https://en.wikipedia.org/wiki/Jai_(programming_language)) compiler.
 
 The process is simple; if you find a bug, raise an issue on GitHub or git.deplet.ing. If you submit a PR, I'll try to check it out promptly.
+
+### Note 
+
+Untested outside of Windows 10 - may find bugs with line endings etc.

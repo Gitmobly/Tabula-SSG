@@ -10,7 +10,7 @@ insert_html_header :: (output_html: *String_Builder, page_name: string, styleshe
         <body>
         <header>
             <nav>
-                <span class="site-title">Unrefactor.ing</span>
+                <span class="site-title">Tabula-SSG</span>
                 <a href="/index.html">Blog</a>
                 <a href="/about.html">About</a>
             </nav>
@@ -34,7 +34,7 @@ insert_html_footer :: (output_html: *String_Builder, total_time: s64 = 0, has_me
 create_blog_page :: (posts: []Markdown_Metadata, stylesheet_path: string) -> bool {
     output_html: String_Builder;
 
-    insert_html_header(*output_html, "Unresearch.ing", stylesheet_path);
+    insert_html_header(*output_html, "Tabula-SSG", stylesheet_path);
 
     print_to_builder(*output_html, "%\n", "<nav>");
 

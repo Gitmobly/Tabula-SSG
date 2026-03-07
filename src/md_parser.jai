@@ -51,6 +51,30 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
             continue;
         }
 
+        if token.type == .QUOTE {
+            if in_paragraph {
+                print_to_builder(*output_html_string_builder, "</p>\n");
+                in_paragraph = false;
+            }
+            print_to_builder(*output_html_string_builder, "<blockquote>");
+            print_to_builder(*output_html_string_builder, "%", token_as_string(*token));
+
+            while it + 1 < lexer_result.num_tokens {
+                next := lexer_result.token_result[it + 1];
+                if next.type == .NEWLINE {
+                    if it + 2 < lexer_result.num_tokens && lexer_result.token_result[it + 2].type == .QUOTE {
+                        it += 2;
+                        print_to_builder(*output_html_string_builder, "<br>%", token_as_string(*lexer_result.token_result[it]));
+                        continue;
+                    }
+                }
+                break;
+            }
+
+            print_to_builder(*output_html_string_builder, "</blockquote>\n");
+            continue;
+        }
+
         is_block := token.type == .H1 || token.type == .H2 || token.type == .H3 ||
                     token.type == .H4 || token.type == .H5 || token.type == .H6 ||
                     token.type == .QUOTE || token.type == .CODEBLOCK;
@@ -281,12 +305,11 @@ consume_code :: (lexer: *Lexer, code_token: *Token) {
 
 consume_quote :: (lexer: *Lexer, quote_token: *Token) {
     quote_token.type = .QUOTE;
-
-    consume(lexer, 2); // '> '
+    consume(lexer); // '>'
+    if peek(lexer) == #char " " consume(lexer);
 
     quote_token.start = *lexer.data[lexer.cursor];
-
-    while (!is_eol(peek(lexer))) {
+    while lexer.cursor < lexer.data.count && !is_eol(peek(lexer)) {
         quote_token.length += 1;
         consume(lexer);
     }

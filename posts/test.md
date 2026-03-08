@@ -35,7 +35,7 @@ Code blocks.
 this is a list:
 - one
 - two
-	- three
+- three
 
 this is an ordered list:
 
@@ -43,3 +43,7 @@ this is an ordered list:
 2. two
 3. three
 
+
+And here is a sidenote[^1]
+
+[^1]: the sidenote itself...

@@ -15,6 +15,9 @@ Tabula operates on a subset of the [commonmark markdown specification](https://s
 - Code blocks.
 - Hyperlinks.
 - Images.
+- Ordered Lists.
+- Unordered Lists.
+- Sidenotes.
 
 ### Usage
 

@@ -7,6 +7,7 @@ Lexer :: struct {
     cursor: s64;
     num_tokens: s64;
     token_result: []Token;
+    at_line_start: bool = true;
 }
 
 Allocators :: struct {

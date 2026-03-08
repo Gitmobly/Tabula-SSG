@@ -193,6 +193,8 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
 
     while lexer.cursor < lexer.data.count {
         assert(lexer.num_tokens < MAX_TOKENS);
+        was_line_start := lexer.at_line_start;
+        lexer.at_line_start = false;
         current_token := peek(lexer);
 
         if current_token == {
@@ -201,7 +203,7 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
                 consume_heading(lexer, *header_token);
             }
         case #char "*"; {
-                if peek(lexer, 1) == #char " " {
+                if was_line_start && peek(lexer, 1) == #char " " {
                     list_token: Token;
                     consume_list_item_ul(lexer, *list_token);
                 } else {
@@ -214,17 +216,12 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
                 consume_emphasis(lexer, *emphasis_token);
             }
         case #char "-"; {
-                if peek(lexer, 1) == #char " " {
+                if was_line_start && peek(lexer, 1) == #char " " {
                     list_token: Token;
                     consume_list_item_ul(lexer, *list_token);
                 } else {
                     text_token: Token;
-                    text_token.type = .TEXT;
-                    text_token.start = *lexer.data[lexer.cursor];
-                    text_token.length = 1;
-                    consume(lexer);
-                    lexer.token_result[lexer.num_tokens] = text_token;
-                    lexer.num_tokens += 1;
+                    consume_text(lexer, *text_token);
                 }
             }
         case #char "`"; {
@@ -264,7 +261,7 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
                 }
             }
         case; {
-                if is_ordered_list_start(lexer) {
+                if was_line_start && is_ordered_list_start(lexer) {
                     list_token: Token;
                     consume_list_item_ol(lexer, *list_token);
                 } else {
@@ -368,6 +365,7 @@ consume_newline :: (lexer: *Lexer, newline_token: *Token) {
 
     lexer.token_result[lexer.num_tokens] = newline_token;
     lexer.num_tokens += 1;
+    lexer.at_line_start = true;
 }
 
 consume_code :: (lexer: *Lexer, code_token: *Token) {
@@ -550,7 +548,6 @@ is_special_character :: (char: u8) -> bool {
     case "\r"; #through;
     case "\0"; #through;
     case "["; #through;
-    case "-"; #through;
     case "*"; return true;
     }
 

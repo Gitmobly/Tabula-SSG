@@ -140,4 +140,47 @@ footer {
 }
 
 header nav        { gap: 1.2rem; }
+
+ul, ol { margin: 1.2em 0 1.4em 1.8em; padding: 0; }
+li { margin-bottom: 0.4em; }
+
+.sidenote-number {
+    font-size: 0.7em;
+    vertical-align: super;
+    font-family: 'Courier New', monospace;
+    color: #888;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-decoration-color: #bbb;
+}
+.sidenote-toggle { display: none; }
+.sidenote {
+    display: none;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #555;
+    font-style: italic;
+    background: #f9f9f9;
+    border-left: 2px solid #ccc;
+    padding: 0.5em 1em;
+    margin: 0.6em 0;
+}
+.sidenote sup { font-size: 0.7em; color: #aaa; margin-right: 0.3em; }
+.sidenote-toggle:checked ~ .sidenote { display: block; }
+
+@media (min-width: 960px) {
+    .sidenote-ref    { position: relative; }
+    .sidenote-number { cursor: default; text-decoration: none; }
+    .sidenote {
+        display: block;
+        float: right;
+        clear: right;
+        margin-right: -250px;
+        margin-bottom: 0.5em;
+        width: 220px;
+        background: none;
+        border-left: 2px solid #ddd;
+        padding: 0 0 0 0.8em;
+    }
+}
 END

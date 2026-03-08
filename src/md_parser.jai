@@ -1,4 +1,5 @@
 MAX_TOKENS :: 2048;
+MAX_FOOTNOTES :: 256;
 PRINT_PARSER_OUTPUT :: false;
 
 DEFAULT_HTML_FOOTER :: "Created by <a target=\"_blank\" rel=\"noopener noreferrer\" href='https://git.deplet.ing/Jj/Tabula-SSG'>Tabula-SSG</a>.";
@@ -52,17 +53,81 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
 }
 
 render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
+    footnotes: [MAX_FOOTNOTES]Footnote_Entry;
+    footnote_count := 0;
+    for 0..lexer_result.num_tokens - 1 {
+        t := lexer_result.token_result[it];
+        if t.type == .FOOTNOTE_DEF && footnote_count < MAX_FOOTNOTES {
+            footnotes[footnote_count] = .{
+                                          id = .{t.length, t.start},
+                                          text = .{t.aux_length, t.aux_start}};
+
+            footnote_count += 1;
+        }
+    }
+
     in_paragraph := false;
+    in_ul := false;
+    in_ol := false;
+    in_quote := false;
+    fn_num := 0;
 
     for 0..lexer_result.num_tokens - 1 {
         token := lexer_result.token_result[it];
-        if token.type == .UNKNOWN continue;
+        if token.type == .UNKNOWN || token.type == .FOOTNOTE_DEF continue;
 
         if token.type == .NEWLINE {
-            if token.length >= 2 && in_paragraph {
-                print_to_builder(output, "</p>\n");
-                in_paragraph = false;
+            newline_count: s64 = 0;
+            for 0..token.length - 1 {
+                if (token.start + it).* == #char "\n" newline_count += 1;
             }
+            if newline_count >= 2 {
+                if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
+                if in_ul {print_to_builder(output, "</ul>\n"); in_ul = false;}
+                if in_ol {print_to_builder(output, "</ol>\n"); in_ol = false;}
+                if in_quote {print_to_builder(output, "</blockquote>\n"); in_quote = false;}
+            }
+            continue;
+        }
+
+        if token.type == .LIST_ITEM_UL {
+            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
+            if in_ol {print_to_builder(output, "</ol>\n"); in_ol = false;}
+            if !in_ul {print_to_builder(output, "<ul>\n"); in_ul = true;}
+            print_to_builder(output, "<li>%</li>\n", token_as_string(*token));
+            continue;
+        }
+
+        if token.type == .LIST_ITEM_OL {
+            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
+            if in_ul {print_to_builder(output, "</ul>\n"); in_ul = false;}
+            if !in_ol {print_to_builder(output, "<ol>\n"); in_ol = true;}
+            print_to_builder(output, "<li>%</li>\n", token_as_string(*token));
+            continue;
+        }
+
+        if token.type == .QUOTE {
+            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
+            if !in_quote {print_to_builder(output, "<blockquote>\n"); in_quote = true;}
+            print_to_builder(output, "<p>%</p>\n", token_as_string(*token));
+            continue;
+        }
+
+        if in_ul {print_to_builder(output, "</ul>\n"); in_ul = false;}
+        if in_ol {print_to_builder(output, "</ol>\n"); in_ol = false;}
+        if in_quote {print_to_builder(output, "</blockquote>\n"); in_quote = false;}
+
+        if token.type == .FOOTNOTE_REF {
+            fn_num += 1;
+            ref_id := token_as_string(*token);
+            fn_text: string;
+            for 0..footnote_count - 1 {
+                if footnotes[it].id == ref_id {fn_text = footnotes[it].text; break;}
+            }
+            if !in_paragraph {print_to_builder(output, "<p>"); in_paragraph = true;}
+            print_to_builder(output,
+                             "<span class=\"sidenote-ref\">%<label class=\"sidenote-number\" for=\"fn-%\">%</label><input type=\"checkbox\" id=\"fn-%\" class=\"sidenote-toggle\"><span class=\"sidenote\"><sup>%</sup> %</span></span>%",
+                             "", fn_num, fn_num, fn_num, fn_num, fn_text, "");
             continue;
         }
 
@@ -84,7 +149,7 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
 
         is_block := token.type == .H1 || token.type == .H2 || token.type == .H3 ||
                     token.type == .H4 || token.type == .H5 || token.type == .H6 ||
-                    token.type == .QUOTE || token.type == .CODEBLOCK;
+                    token.type == .CODEBLOCK;
 
         if is_block {
             if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
@@ -99,6 +164,9 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
     }
 
     if in_paragraph print_to_builder(output, "</p>\n");
+    if in_ul print_to_builder(output, "</ul>\n");
+    if in_ol print_to_builder(output, "</ol>\n");
+    if in_quote print_to_builder(output, "</blockquote>\n");
 }
 
 run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Build_Config) -> bool, *Lexer {
@@ -132,10 +200,32 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
                 header_token: Token;
                 consume_heading(lexer, *header_token);
             }
-        case #char "*"; #through;
+        case #char "*"; {
+                if peek(lexer, 1) == #char " " {
+                    list_token: Token;
+                    consume_list_item_ul(lexer, *list_token);
+                } else {
+                    emphasis_token: Token;
+                    consume_emphasis(lexer, *emphasis_token);
+                }
+            }
         case #char "_"; {
                 emphasis_token: Token;
                 consume_emphasis(lexer, *emphasis_token);
+            }
+        case #char "-"; {
+                if peek(lexer, 1) == #char " " {
+                    list_token: Token;
+                    consume_list_item_ul(lexer, *list_token);
+                } else {
+                    text_token: Token;
+                    text_token.type = .TEXT;
+                    text_token.start = *lexer.data[lexer.cursor];
+                    text_token.length = 1;
+                    consume(lexer);
+                    lexer.token_result[lexer.num_tokens] = text_token;
+                    lexer.num_tokens += 1;
+                }
             }
         case #char "`"; {
                 code_token: Token;
@@ -151,8 +241,13 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
                 consume_newline(lexer, *newline_token);
             }
         case #char "["; {
-                hyperlink_token: Token;
-                consume_hyperlink(lexer, *hyperlink_token);
+                if peek(lexer, 1) == #char "^" {
+                    fn_token: Token;
+                    consume_footnote(lexer, *fn_token);
+                } else {
+                    hyperlink_token: Token;
+                    consume_hyperlink(lexer, *hyperlink_token);
+                }
             }
         case #char "!"; {
                 if peek(lexer, 1) == #char "[" {
@@ -169,8 +264,13 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
                 }
             }
         case; {
-                text_token: Token;
-                consume_text(lexer, *text_token);
+                if is_ordered_list_start(lexer) {
+                    list_token: Token;
+                    consume_list_item_ol(lexer, *list_token);
+                } else {
+                    text_token: Token;
+                    consume_text(lexer, *text_token);
+                }
             }
         }
     }
@@ -375,6 +475,73 @@ consume_image :: (lexer: *Lexer, image_token: *Token) {
     lexer.num_tokens += 1;
 }
 
+is_ordered_list_start :: (lexer: *Lexer) -> bool {
+    i: s64 = 0;
+    while lexer.cursor + i < lexer.data.count &&
+          lexer.data[lexer.cursor + i] >= #char "0" &&
+          lexer.data[lexer.cursor + i] <= #char "9"
+        i += 1;
+    if i == 0 return false;
+    if lexer.cursor + i + 1 >= lexer.data.count return false;
+    return lexer.data[lexer.cursor + i] == #char "." &&
+           lexer.data[lexer.cursor + i + 1] == #char " ";
+}
+
+consume_list_item_ul :: (lexer: *Lexer, token: *Token) {
+    token.type = .LIST_ITEM_UL;
+    consume(lexer); // '-' or '*'
+    consume(lexer); // ' '
+    token.start = *lexer.data[lexer.cursor];
+    while lexer.cursor < lexer.data.count && !is_eol(peek(lexer)) {
+        token.length += 1;
+        consume(lexer);
+    }
+    lexer.token_result[lexer.num_tokens] = token;
+    lexer.num_tokens += 1;
+}
+
+consume_list_item_ol :: (lexer: *Lexer, token: *Token) {
+    token.type = .LIST_ITEM_OL;
+    while peek(lexer) >= #char "0" && peek(lexer) <= #char "9" consume(lexer);
+    consume(lexer); // '.'
+    consume(lexer); // ' '
+    token.start = *lexer.data[lexer.cursor];
+    while lexer.cursor < lexer.data.count && !is_eol(peek(lexer)) {
+        token.length += 1;
+        consume(lexer);
+    }
+    lexer.token_result[lexer.num_tokens] = token;
+    lexer.num_tokens += 1;
+}
+
+consume_footnote :: (lexer: *Lexer, token: *Token) {
+    consume(lexer); // '['
+    consume(lexer); // '^'
+
+    token.start = *lexer.data[lexer.cursor];
+    while lexer.cursor < lexer.data.count && peek(lexer) != #char "]" && !is_eol(peek(lexer)) {
+        token.length += 1;
+        consume(lexer);
+    }
+    consume(lexer); // ']'
+
+    if peek(lexer) == #char ":" {
+        token.type = .FOOTNOTE_DEF;
+        consume(lexer); // ':'
+        if peek(lexer) == #char " " consume(lexer);
+        token.aux_start = *lexer.data[lexer.cursor];
+        while lexer.cursor < lexer.data.count && !is_eol(peek(lexer)) {
+            token.aux_length += 1;
+            consume(lexer);
+        }
+    } else {
+        token.type = .FOOTNOTE_REF;
+    }
+
+    lexer.token_result[lexer.num_tokens] = token;
+    lexer.num_tokens += 1;
+}
+
 is_special_character :: (char: u8) -> bool {
     if char == {
     case "#"; #through;
@@ -383,6 +550,7 @@ is_special_character :: (char: u8) -> bool {
     case "\r"; #through;
     case "\0"; #through;
     case "["; #through;
+    case "-"; #through;
     case "*"; return true;
     }
 

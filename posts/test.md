@@ -32,4 +32,14 @@ Code blocks.
 
 [Links](https://git.deplet.ing/Jj/Tabula-SSG)
 
-### TODO: Write more about usage, building, etc
+this is a list:
+- one
+- two
+	- three
+
+this is an ordered list:
+
+1. Hi
+2. two
+3. three
+

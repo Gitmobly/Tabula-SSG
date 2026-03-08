@@ -68,6 +68,12 @@ Token_Type :: enum {
     HYPERLINK;
 
     IMAGE;
+
+    LIST_ITEM_UL;
+    LIST_ITEM_OL;
+
+    FOOTNOTE_REF;
+    FOOTNOTE_DEF;
 }
 
 Token :: struct {
@@ -102,4 +108,10 @@ TOKEN_HTML :: Html_Tags.[
                          .{"<code>", "</code>"}, // INLINECODE
                          .{"<pre><code>", "</code></pre>"}, // CODEBLOCK
                          .{"", ""}, // HYPERLINK 
-                         .{"", ""}]; // IMAGE 
+                         .{"", ""}, // IMAGE 
+                         .{"<li>", "</li>"}, // LIST_ITEM_UL
+                         .{"<li>", "</li>"}, // LIST_ITEM_OL
+                         .{"", ""}, // FOOTNOTE_REF  
+                         .{"", ""}]; // FOOTNOTE_DEF  
+
+Footnote_Entry :: struct {id: string; text: string;}

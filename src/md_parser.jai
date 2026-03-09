@@ -13,7 +13,6 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
         return false;
     }
 
-    print("Beginning parser pass for `%`.\n", markdown_data.file_path);
     output_html_string_builder: String_Builder;
     page_name_arr := split(markdown_data.file_path, "/");
     page_name_val := split(page_name_arr[page_name_arr.count - 1], ".")[0];
@@ -48,7 +47,6 @@ run_markdown_parser :: (a: *Allocator, markdown_data: *Markdown_Data, lexer_resu
         }
     }
 
-    print("Completed parser pass for `%`.\n", markdown_data.file_path);
     return true;
 }
 
@@ -170,7 +168,6 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
 }
 
 run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Build_Config) -> bool, *Lexer {
-    print("Beginning lexer pass for `%`.\n", markdown_data.file_path);
     lexer := New(Lexer,, a);
     lexer.data = markdown_data.data;
     lexer.cursor = 0;
@@ -272,7 +269,6 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
         }
     }
 
-    print("Completed lexer pass for `%`.\n", markdown_data.file_path);
     return true, lexer;
 }
 
@@ -389,7 +385,6 @@ consume_code :: (lexer: *Lexer, code_token: *Token) {
         consume(lexer);
     }
 
-    consume(lexer);
     lexer.token_result[lexer.num_tokens] = code_token;
     lexer.num_tokens += 1;
 }

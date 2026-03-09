@@ -72,6 +72,7 @@ Token_Type :: enum {
 
     LIST_ITEM_UL;
     LIST_ITEM_OL;
+    LIST_ITEM_END;
 
     FOOTNOTE_REF;
     FOOTNOTE_DEF;
@@ -112,6 +113,7 @@ TOKEN_HTML :: Html_Tags.[
                          .{"", ""}, // IMAGE 
                          .{"<li>", "</li>"}, // LIST_ITEM_UL
                          .{"<li>", "</li>"}, // LIST_ITEM_OL
+                         .{"", ""}, // LIST_ITEM_END
                          .{"", ""}, // FOOTNOTE_REF  
                          .{"", ""}]; // FOOTNOTE_DEF  
 

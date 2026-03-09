@@ -89,18 +89,23 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
         }
 
         if token.type == .LIST_ITEM_UL {
-            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
-            if in_ol {print_to_builder(output, "</ol>\n"); in_ol = false;}
-            if !in_ul {print_to_builder(output, "<ul>\n"); in_ul = true;}
-            print_to_builder(output, "<li>%</li>\n", token_as_string(*token));
+            if in_paragraph { print_to_builder(output, "</p>\n"); in_paragraph = false; }
+            if in_ol { print_to_builder(output, "</ol>\n"); in_ol = false; }
+            if !in_ul { print_to_builder(output, "<ul>\n"); in_ul = true; }
+            print_to_builder(output, "<li>");
             continue;
         }
 
         if token.type == .LIST_ITEM_OL {
-            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
-            if in_ul {print_to_builder(output, "</ul>\n"); in_ul = false;}
-            if !in_ol {print_to_builder(output, "<ol>\n"); in_ol = true;}
-            print_to_builder(output, "<li>%</li>\n", token_as_string(*token));
+            if in_paragraph { print_to_builder(output, "</p>\n"); in_paragraph = false; }
+            if in_ul { print_to_builder(output, "</ul>\n"); in_ul = false; }
+            if !in_ol { print_to_builder(output, "<ol>\n"); in_ol = true; }
+            print_to_builder(output, "<li>");
+            continue;
+        }
+
+        if token.type == .LIST_ITEM_END {
+            print_to_builder(output, "</li>\n");
             continue;
         }
 
@@ -480,30 +485,45 @@ is_ordered_list_start :: (lexer: *Lexer) -> bool {
            lexer.data[lexer.cursor + i + 1] == #char " ";
 }
 
+consume_inline_until_eol :: (lexer: *Lexer) {
+    while lexer.cursor < lexer.data.count && !is_eol(peek(lexer)) {
+        c := peek(lexer);
+        if c == #char "[" {
+            if peek(lexer, 1) == #char "^" {
+                fn_token: Token; consume_footnote(lexer, *fn_token);
+            } else {
+                hyperlink_token: Token; consume_hyperlink(lexer, *hyperlink_token);
+            }
+        } else if c == #char "*" || c == #char "_" {
+            emphasis_token: Token; consume_emphasis(lexer, *emphasis_token);
+        } else if c == #char "`" {
+            code_token: Token; consume_code(lexer, *code_token);
+        } else {
+            text_token: Token; consume_text(lexer, *text_token);
+        }
+    }
+}
+
 consume_list_item_ul :: (lexer: *Lexer, token: *Token) {
     token.type = .LIST_ITEM_UL;
-    consume(lexer); // '-' or '*'
-    consume(lexer); // ' '
-    token.start = *lexer.data[lexer.cursor];
-    while lexer.cursor < lexer.data.count && !is_eol(peek(lexer)) {
-        token.length += 1;
-        consume(lexer);
-    }
-    lexer.token_result[lexer.num_tokens] = token;
+    consume(lexer); consume(lexer); // '-'/'*' + ' '
+    lexer.token_result[lexer.num_tokens] = token.*;
+    lexer.num_tokens += 1;
+    consume_inline_until_eol(lexer);
+    end: Token; end.type = .LIST_ITEM_END;
+    lexer.token_result[lexer.num_tokens] = end;
     lexer.num_tokens += 1;
 }
 
 consume_list_item_ol :: (lexer: *Lexer, token: *Token) {
     token.type = .LIST_ITEM_OL;
     while peek(lexer) >= #char "0" && peek(lexer) <= #char "9" consume(lexer);
-    consume(lexer); // '.'
-    consume(lexer); // ' '
-    token.start = *lexer.data[lexer.cursor];
-    while lexer.cursor < lexer.data.count && !is_eol(peek(lexer)) {
-        token.length += 1;
-        consume(lexer);
-    }
-    lexer.token_result[lexer.num_tokens] = token;
+    consume(lexer); consume(lexer); // '.' + ' '
+    lexer.token_result[lexer.num_tokens] = token.*;
+    lexer.num_tokens += 1;
+    consume_inline_until_eol(lexer);
+    end: Token; end.type = .LIST_ITEM_END;
+    lexer.token_result[lexer.num_tokens] = end;
     lexer.num_tokens += 1;
 }
 

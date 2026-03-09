@@ -120,9 +120,9 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
             continue;
         }
 
-        if in_ul {print_to_builder(output, "</ul>\n"); in_ul = false;}
-        if in_ol {print_to_builder(output, "</ol>\n"); in_ol = false;}
-        if in_quote {print_to_builder(output, "</blockquote>\n"); in_quote = false;}
+        if in_ul && !in_list_item {print_to_builder(output, "</ul>\n"); in_ul = false;}
+        if in_ol && !in_list_item {print_to_builder(output, "</ol>\n"); in_ol = false;}
+        if in_quote && !in_list_item {print_to_builder(output, "</blockquote>\n"); in_quote = false;}
 
         if token.type == .FOOTNOTE_REF {
             fn_num += 1;

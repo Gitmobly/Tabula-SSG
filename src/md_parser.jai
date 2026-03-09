@@ -69,6 +69,7 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
     in_ol := false;
     in_quote := false;
     fn_num := 0;
+    in_list_item := false;
 
     for 0..lexer_result.num_tokens - 1 {
         token := lexer_result.token_result[it];
@@ -93,6 +94,7 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
             if in_ol { print_to_builder(output, "</ol>\n"); in_ol = false; }
             if !in_ul { print_to_builder(output, "<ul>\n"); in_ul = true; }
             print_to_builder(output, "<li>");
+            in_list_item = true;
             continue;
         }
 
@@ -101,11 +103,13 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
             if in_ul { print_to_builder(output, "</ul>\n"); in_ul = false; }
             if !in_ol { print_to_builder(output, "<ol>\n"); in_ol = true; }
             print_to_builder(output, "<li>");
+            in_list_item = true;
             continue;
         }
 
         if token.type == .LIST_ITEM_END {
             print_to_builder(output, "</li>\n");
+            in_list_item = false;
             continue;
         }
 
@@ -127,7 +131,7 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
             for 0..footnote_count - 1 {
                 if footnotes[it].id == ref_id {fn_text = footnotes[it].text; break;}
             }
-            if !in_paragraph {print_to_builder(output, "<p>"); in_paragraph = true;}
+            if !in_paragraph && !in_list_item {print_to_builder(output, "<p>"); in_paragraph = true;}
             print_to_builder(output,
                              "<span class=\"sidenote-ref\">%<label class=\"sidenote-number\" for=\"fn-%\">%</label><input type=\"checkbox\" id=\"fn-%\" class=\"sidenote-toggle\"><span class=\"sidenote\"><sup>%</sup> %</span></span>%",
                              "", fn_num, fn_num, fn_num, fn_num, fn_text, "");
@@ -135,7 +139,7 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
         }
 
         if token.type == .HYPERLINK {
-            if !in_paragraph {print_to_builder(output, "<p>"); in_paragraph = true;}
+            if !in_paragraph && !in_list_item {print_to_builder(output, "<p>"); in_paragraph = true;}
             print_to_builder(output, "<a href=\"%\">%</a>",
                              string.{token.aux_length, token.aux_start},
                              string.{token.length, token.start});
@@ -161,7 +165,7 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
             continue;
         }
 
-        if !in_paragraph {print_to_builder(output, "<p>"); in_paragraph = true;}
+        if !in_paragraph && !in_list_item {print_to_builder(output, "<p>"); in_paragraph = true;}
         tags := TOKEN_HTML[cast(int)token.type];
         print_to_builder(output, "%%%", tags.open, token_as_string(*token), tags.close);
     }

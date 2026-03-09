@@ -86,10 +86,11 @@ main :: () {
         if !lexer_ok print("Failed to complete lexer stage for file: %\n", file_path);
         if run_markdown_parser(allocators.persistent, *markdown_data, lexer_result, start_time, config) {
             array_add(*processed_items, Markdown_Metadata.{
-                                                           file_path = markdown_data.file_path,
-                                                           title = markdown_data.title,
-                                                           subtitle = markdown_data.subtitle,
-                                                           date_str = markdown_data.date_str});
+                file_path = copy_string(markdown_data.file_path,, allocators.persistent),
+                title     = copy_string(markdown_data.title,,     allocators.persistent),
+                subtitle  = copy_string(markdown_data.subtitle,,  allocators.persistent),
+                date_str  = copy_string(markdown_data.date_str,,  allocators.persistent),
+            });
         }
     }
 

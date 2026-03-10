@@ -75,11 +75,4 @@ The process is simple; if you find a bug, raise an issue on GitHub or git.deplet
 
 ### Example Sites:
 
-[Working on it!]()
-
-### Note 
-
-Untested outside of Windows 10 - may find bugs with line endings etc.
-
-
-
+[Unresearch.ing](https://unresearch.ing)

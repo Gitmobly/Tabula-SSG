@@ -210,7 +210,12 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
                     consume_heading(lexer, *header_token);
                 } else {
                     text_token: Token;
-                    consume_text(lexer, *text_token);
+                    text_token.type = .TEXT;
+                    text_token.start = *lexer.data[lexer.cursor];
+                    text_token.length = 1;
+                    consume(lexer);
+                    lexer.token_result[lexer.num_tokens] = text_token;
+                    lexer.num_tokens += 1;
                 }
             }
         case #char "*"; {
@@ -566,7 +571,6 @@ consume_footnote :: (lexer: *Lexer, token: *Token) {
 
 is_special_character :: (char: u8) -> bool {
     if char == {
-    case "#"; #through;
     case "`"; #through;
     case "\n"; #through;
     case "\r"; #through;

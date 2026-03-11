@@ -90,18 +90,18 @@ render_tokens_to_builder :: (output: *String_Builder, lexer_result: *Lexer) {
         }
 
         if token.type == .LIST_ITEM_UL {
-            if in_paragraph { print_to_builder(output, "</p>\n"); in_paragraph = false; }
-            if in_ol { print_to_builder(output, "</ol>\n"); in_ol = false; }
-            if !in_ul { print_to_builder(output, "<ul>\n"); in_ul = true; }
+            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
+            if in_ol {print_to_builder(output, "</ol>\n"); in_ol = false;}
+            if !in_ul {print_to_builder(output, "<ul>\n"); in_ul = true;}
             print_to_builder(output, "<li>");
             in_list_item = true;
             continue;
         }
 
         if token.type == .LIST_ITEM_OL {
-            if in_paragraph { print_to_builder(output, "</p>\n"); in_paragraph = false; }
-            if in_ul { print_to_builder(output, "</ul>\n"); in_ul = false; }
-            if !in_ol { print_to_builder(output, "<ol>\n"); in_ol = true; }
+            if in_paragraph {print_to_builder(output, "</p>\n"); in_paragraph = false;}
+            if in_ul {print_to_builder(output, "</ul>\n"); in_ul = false;}
+            if !in_ol {print_to_builder(output, "<ol>\n"); in_ol = true;}
             print_to_builder(output, "<li>");
             in_list_item = true;
             continue;
@@ -205,8 +205,13 @@ run_markdown_lexer :: (a: *Allocator, markdown_data: *Markdown_Data, config: Bui
 
         if current_token == {
         case #char "#"; {
-                header_token: Token;
-                consume_heading(lexer, *header_token);
+                if was_line_start {
+                    header_token: Token;
+                    consume_heading(lexer, *header_token);
+                } else {
+                    text_token: Token;
+                    consume_text(lexer, *text_token);
+                }
             }
         case #char "*"; {
                 if was_line_start && peek(lexer, 1) == #char " " {
